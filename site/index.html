@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PIT Consensus API</title>
+    <meta
+      name="description"
+      content="API reference for the point-in-time EPS consensus demo: per-estimate split adjustment, served over HTTP and MCP. Generated from openapi.json (version 2026-10)." />
+    <style>
+      body { margin: 0; }
+      noscript p { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
+    </style>
+  </head>
+  <body>
+    <!--
+      Rendered from openapi.json, which the Pages workflow copies in from the repo root.
+      That file is generated from the code (`uv run demo sdk`) and checked in CI, so this
+      page cannot drift from the API. The renderer is pinned to an exact version.
+    -->
+    <noscript>
+      <p>
+        This page renders the API reference with JavaScript. The raw spec is
+        <a href="openapi.json">openapi.json</a> (OpenAPI 3.1, version 2026-10); the code is at
+        <a href="https://github.com/LZL0/zacks-pit-demo">github.com/LZL0/zacks-pit-demo</a>.
+      </p>
+    </noscript>
+    <div id="app"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.73.1/dist/browser/standalone.js"></script>
+    <script>
+      Scalar.createApiReference("#app", {
+        url: "./openapi.json",
+        metaData: { title: "PIT Consensus API" },
+        // A plain reference: no hosted AI/MCP features, no toolbar, no telemetry.
+        agent: { disabled: true },
+        mcp: { disabled: true },
+        showDeveloperTools: "never",
+        telemetry: false,
+      });
+    </script>
+  </body>
+</html>

@@ -98,3 +98,6 @@ methodology and agent skill, and its failure message tells you which sentence to
 Work on a branch and open a PR; CI runs lint, mypy, tests on Python 3.12–3.15, the SDK
 drift check and the end-to-end smoke job. Renovate manages dependency updates. A weekly
 workflow (`verify-sources.yml`) re-verifies SEC history, split cross-checks and source URLs.
+`pages.yml` publishes `site/index.html` plus the committed `openapi.json` as the API
+reference at https://lzl0.github.io/zacks-pit-demo/ (the renderer is pinned to an exact
+version; telemetry and hosted AI features are off).

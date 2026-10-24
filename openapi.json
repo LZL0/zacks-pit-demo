@@ -860,7 +860,7 @@
     }
   },
   "info": {
-    "description": "Point-in-time EPS consensus with per-estimate split adjustment. Analyst estimates are SYNTHETIC; actuals (SEC EDGAR) and corporate actions (primary sources) are real.",
+    "description": "Point-in-time EPS consensus with per-estimate split adjustment: what the consensus was\n*as it could have been known* on a date, with every estimate's share basis resolved\nindividually around stock splits.\n\n**Data.** Analyst estimates are **synthetic** (seeded). EPS actuals (SEC EDGAR),\nearnings-release times and corporate actions (SEC filings and other primary sources) are\nreal.\n\n**Conventions.** A bare date means the end of that day, UTC. `basis=adjusted` puts every\nvalue on the latest share basis; `basis=unadjusted` shows what a screen showed that day.\nErrors are typed (`InvalidRequest` 400, `NotFound` 404).\n\n**Versioning.** The API is versioned by date; this is version `2026-10`.\n\n**One schema, four outputs.** This spec, the Python (Pydantic) and TypeScript (Zod) SDKs\nand the MCP tool definitions are all generated from the same Pydantic models, and CI fails\nif any of them drifts. Source and methodology: [github.com/LZL0/zacks-pit-demo](https://github.com/LZL0/zacks-pit-demo).\n",
     "title": "Point-in-time consensus demo",
     "version": "2026-10"
   },
@@ -868,6 +868,7 @@
   "paths": {
     "/consensus": {
       "get": {
+        "description": "EPS consensus for one security and fiscal year exactly as it could have been\ncomputed at `as_of`: mean, median, high, low, stdev and count, every contributing\nestimate with its share-basis decision, every exclusion with its reason, and the\ncorporate actions applied. Fewer than 3 qualifying estimates returns 200 with\n`insufficient: true`.",
         "operationId": "get_consensus_consensus_get",
         "parameters": [
           {
@@ -959,11 +960,15 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Consensus"
+        "summary": "Point-in-time consensus",
+        "tags": [
+          "Consensus"
+        ]
       }
     },
     "/consensus/series": {
       "get": {
+        "description": "Daily (trading-day) point-in-time consensus between `start` and `end`, for a\nfixed fiscal-year label. Each point is computed as of the end of that day.",
         "operationId": "get_series_consensus_series_get",
         "parameters": [
           {
@@ -1065,11 +1070,15 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Series"
+        "summary": "Consensus time series",
+        "tags": [
+          "Consensus"
+        ]
       }
     },
     "/corporate-actions": {
       "get": {
+        "description": "Splits, reverse splits, spin-offs and delistings for a security, each with its\nannouncement time, ex-date, share ratio and primary-source URL.",
         "operationId": "get_corporate_actions_corporate_actions_get",
         "parameters": [
           {
@@ -1113,11 +1122,15 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Corporate Actions"
+        "summary": "Corporate actions",
+        "tags": [
+          "Reference data"
+        ]
       }
     },
     "/explain": {
       "get": {
+        "description": "How the adjusted consensus on `date` was built: split factors applied (with\nprimary sources), each estimate's basis decision, exclusions, and what a naive\naverage of raw published values would have shown.",
         "operationId": "get_explain_explain_get",
         "parameters": [
           {
@@ -1180,11 +1193,15 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Explain"
+        "summary": "Explain an adjustment",
+        "tags": [
+          "Consensus"
+        ]
       }
     },
     "/healthz": {
       "get": {
+        "description": "Liveness, the dated API version, and consensus-cache statistics.",
         "operationId": "healthz_healthz_get",
         "responses": {
           "200": {
@@ -1198,11 +1215,15 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Healthz"
+        "summary": "Health check",
+        "tags": [
+          "Operations"
+        ]
       }
     },
     "/revisions": {
       "get": {
+        "description": "Per-broker revisions over a lookback window, comparing each broker with itself,\nso brokers adding or dropping coverage don't move the signal.",
         "operationId": "get_revisions_revisions_get",
         "parameters": [
           {
@@ -1274,12 +1295,15 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Revisions"
+        "summary": "Revision signal",
+        "tags": [
+          "Consensus"
+        ]
       }
     },
     "/universe": {
       "get": {
-        "description": "Securities listed on `date` (delisted names drop out; their history stays).",
+        "description": "Securities listed on `date`, with the ticker each used that day. Delisted names\ndrop out; their history stays queryable.",
         "operationId": "get_universe_universe_get",
         "parameters": [
           {
@@ -1325,7 +1349,10 @@
             "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
           }
         },
-        "summary": "Get Universe"
+        "summary": "Universe on a date",
+        "tags": [
+          "Reference data"
+        ]
       }
     }
   },

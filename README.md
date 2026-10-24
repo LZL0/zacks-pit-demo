@@ -2,7 +2,7 @@
 
 **Point-in-time analyst consensus that survives a stock split, with per-estimate share-basis handling, tests pinned to real SEC data, and delivery to people (Python/TS SDKs) and agents (MCP).**
 
-**Claude Code answering over MCP** (live run; [MP4](docs/demo.mp4)):
+**[API reference](https://lzl0.github.io/zacks-pit-demo/)** (OpenAPI 3.1, version `2026-10`) · **Claude Code answering over MCP** (live run; [MP4](docs/demo.mp4)):
 
 ![Claude Code calls get_consensus for NVDA FY2025 as of 2024-05-31 and answers USD 2.59 split-adjusted (25.88 on that day's share basis), then calls explain_adjustment to show the 10-for-1 split was applied per estimate](docs/demo.gif)
 
@@ -85,7 +85,7 @@ src/pitdemo/schemas.py (Pydantic)
  └─ sdk/mcp-tools.json ....... MCP tool definitions (input and output schemas)
 ```
 
-**[`openapi.json`](openapi.json)** is the place to start if you want your own client or want to load the API into your tools. The running server also serves it at `/openapi.json` and as interactive docs at `/docs`. The API is versioned by date (`2026-10`) rather than by semver.
+**[`openapi.json`](openapi.json)** is the place to start if you want your own client or want to load the API into your tools. It is published as a browsable reference at **[lzl0.github.io/zacks-pit-demo](https://lzl0.github.io/zacks-pit-demo/)** on every push to `main` that changes it (`.github/workflows/pages.yml`), and the running server also serves it at `/openapi.json` and as interactive docs at `/docs`. The API is versioned by date (`2026-10`) rather than by semver.
 
 | Concern | Choice |
 |---|---|
