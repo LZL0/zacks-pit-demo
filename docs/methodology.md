@@ -10,7 +10,7 @@ Every rule below is implemented in `src/pitdemo/transforms/` and pinned by a tes
 | Diluted EPS actuals, every filing including restatements | SEC EDGAR `companyfacts` (`us-gaap:EarningsPerShareDiluted`) | Real |
 | Earnings-release times | SEC EDGAR filing index: 8-K item 2.02, acceptance timestamp | Real |
 | Splits, spin-offs, delisting | `data/raw/corporate_actions.csv`, every row citing an SEC filing or FDIC release | Real |
-| Analyst estimates (1,321 rows, 14 brokers) | `src/pitdemo/ingest/synth.py`, seed 42 | **Synthetic** |
+| Analyst estimates (1,346 rows, 14 brokers) | `src/pitdemo/ingest/synth.py`, seed 42 | **Synthetic** |
 
 Analyst estimates are licensed data, so the demo generates them. They are calibrated to converge on the real EDGAR actuals, revised after the real earnings releases, and every row carries `source = 'SYNTHETIC'`.
 
@@ -52,9 +52,9 @@ The chart shows what this buys on the synthetic NVDA data:
 
 | as of | this pipeline | naive average | adjust by entry date |
 |---|---|---|---|
-| 2024-05-31 | $2.494 | $24.94 | $2.49 |
-| 2024-06-14 | $2.575 | $12.79 | $9.70 |
-| 2024-07-31 | $2.566 | $2.57 | $2.57 |
+| 2024-05-31 | $2.588 | $25.53 | $2.55 |
+| 2024-06-14 | $2.540 | $12.87 | $4.55 |
+| 2024-07-31 | $2.571 | $2.57 | $2.57 |
 
 The naive average shows a fake 90% collapse. The entry-date shortcut looks fine at both ends, but in between it divides early restaters twice and leaves laggards undivided.
 

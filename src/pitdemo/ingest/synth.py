@@ -35,6 +35,7 @@ from pitdemo.schemas import EstimatesFrame
 from pitdemo.transforms.factors import LATEST, Factor, cumulative_factor
 
 SEED = 42
+CONFIRM_BAND = 0.03  # re-confirm instead of revising when the change would be under 3%
 BROKERS = tuple(f"BRK-{i:02d}" for i in range(1, 15))
 D = dt.date
 
@@ -352,8 +353,10 @@ def generate_security(
                     and last_value is not None
                     and last_basis is not None
                     and cumulative_factor(splits, last_basis, basis_date) == 1.0
-                    and rng.random() < 0.15
+                    and abs(value / last_value - 1) < CONFIRM_BAND
                 ):
+                    # The fresh view is within a few percent of the published number,
+                    # so the broker re-confirms it rather than publishing a new one.
                     value, action = last_value, "confirm"
                 rows.append(
                     {

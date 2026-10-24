@@ -25,7 +25,7 @@ Timebox: one weekend (~12–16 hours of work).
 - [x] Claude (Desktop or Code) answers via MCP: *"What was NVDA's FY2025 EPS consensus on 2024-05-31, split-adjusted?"* with value, as-of date and method.
 - [x] Python SDK (Pydantic) and TS SDK (Zod) generated from one schema; CI fails if they drift.
 - [x] `docs/methodology.md` explains consensus construction and corporate-action handling in under 2 pages.
-- [ ] README opens with the chart and a 60-second recording.
+- [x] README opens with the chart and a 60-second recording.
 
 ## Stack
 
@@ -197,8 +197,8 @@ One test file per case in `tests/golden/`, each asserting exact expected values:
 - [x] `docs/methodology.md` (≤2 pages): consensus rules, stale/outlier handling, per-estimate split basis, PIT guarantees, what is synthetic vs. real.
 - [x] `demo chart` → `docs/nvda_consensus.png`: naive vs. correct FY2025 consensus, May–July 2024, ex-date marked.
 - [x] `docs/llms.txt` + `.claude/skills/query-pit-consensus/SKILL.md`: how an agent should query (always pass `as_of`, state basis).
-- [ ] Record a ≤60s screen capture: Claude asking the NVDA question via MCP, then `explain_adjustment`. Link it at the top of the README.
-- [ ] README top section: one-sentence pitch, chart, recording, `uv run demo serve` quickstart.
+- [x] Record a ≤60s screen capture: Claude asking the NVDA question via MCP, then `explain_adjustment`. Link it at the top of the README.
+- [x] README top section: one-sentence pitch, chart, recording, `uv run demo serve` quickstart.
 
 ## Commands
 
@@ -247,3 +247,4 @@ The repo is public, CI is green, the README shows the chart and the recording ab
 - **Basis inference**: tolerance capped below half the gap between share regimes (3-for-2 splits); all pending splits considered, not just the latest; a guess inherited from a guessed prior is flagged as a guess.
 - **Errors**: `/revisions` resolves FY1/FY2 and validates input; FastAPI validation errors return typed 400 `InvalidRequest`; both SDKs raise their own error type even for untyped error bodies.
 - Each fix has a regression test that fails on the previous code.
+- **Recording** is a live headless Claude Code run (`claude -p` with this repo's `.mcp.json`) captured by `scripts/record/capture.py` and drawn by `scripts/record/render.py` (Pillow + ffmpeg); waits for the model are shortened and the video says so. An interactive session recording would have shown account details in the header.

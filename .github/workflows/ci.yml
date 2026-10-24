@@ -37,7 +37,7 @@ jobs:
       - name: Type-check
         run: |
           uv run mypy src --strict
-          uv run mypy --strict sdk/python/pitdemo_sdk
+          uv run mypy --strict sdk/python/pitdemo_sdk scripts/record
           npm run --prefix sdk/ts build
 
       # Tests run offline against the committed raw data (EDGAR JSON, corporate actions)

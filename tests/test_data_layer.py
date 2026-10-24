@@ -60,8 +60,14 @@ def test_special_cases_present() -> None:
     from pitdemo.pipeline import memory_store
     from pitdemo.transforms.consensus import consensus
 
-    r = consensus(memory_store(), "SEC-0003", "FY2022", dt.date(2022, 12, 5))
-    assert [x.reason for x in r.excluded] == ["outlier"]
+    store = memory_store()
+    flagged = set()
+    day = dt.date(2022, 10, 24)
+    while day <= dt.date(2023, 1, 20):
+        r = consensus(store, "SEC-0003", "FY2022", day)
+        flagged |= {x.broker_id for x in r.excluded if x.reason == "outlier"}
+        day += dt.timedelta(days=7)
+    assert len(flagged) == 1  # exactly the one fat-finger broker
 
 
 def test_report_events_exclude_tesla_delivery_releases(raw: RawData) -> None:

@@ -4,8 +4,11 @@ This is a live run, not a replay: it shells out to `claude -p` (headless Claude 
 with this repo's .mcp.json, then prints the MCP tool calls, a one-line summary of each
 tool result, and Claude's answer. Used by demo.tape to make docs/demo.gif.
 
-    uv run python scripts/record/ask.py "What was NVDA's FY2025 EPS consensus on 2024-05-31?"
-    uv run python scripts/record/ask.py --continue "How was the split handled?"
+    uv run python scripts/record/ask.py --session <uuid> "What was NVDA's FY2025 EPS ...?"
+    uv run python scripts/record/ask.py --resume <uuid> "How was the split handled?"
+
+An explicit session id is used for follow-ups; a bare --continue would pick up whatever
+session last ran in this directory.
 """
 
 from __future__ import annotations
@@ -68,8 +71,12 @@ def tool_result_payload(block: dict[str, Any]) -> Any:
 
 
 def main(argv: list[str]) -> int:
-    resume = argv[:1] == ["--continue"]
-    question = " ".join(argv[1:] if resume else argv)
+    session_args: list[str] = []
+    if argv[:1] in (["--session"], ["--resume"]):
+        flag = "--session-id" if argv[0] == "--session" else "--resume"
+        session_args = [flag, argv[1]]
+        argv = argv[2:]
+    question = " ".join(argv)
     print(f"{BOLD}❯ {question}{RESET}\n", flush=True)
     cmd = [
         "claude",
@@ -86,8 +93,7 @@ def main(argv: list[str]) -> int:
         "stream-json",
         "--verbose",
     ]
-    if resume:
-        cmd.insert(1, "--continue")
+    cmd[1:1] = session_args
     names: dict[str, str] = {}
     proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, text=True)
     assert proc.stdout is not None
