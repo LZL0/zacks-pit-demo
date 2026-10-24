@@ -1,0 +1,59 @@
+src/pitdemo/sdkgen.py
+  s_616c21e0e702ed::t_b6f56a8ac3d357 1,3-7,9,29-54,71,116-118
+src/pitdemo/schemas.py
+  s_616c21e0e702ed::t_9bba68e77592f9 472
+  s_616c21e0e702ed::t_e482782ff85af9 345-356
+pyproject.toml
+  s_616c21e0e702ed::t_f7bf5e61e341b1 30
+tests/test_sdk_parity.py
+  s_616c21e0e702ed::t_9bba68e77592f9 9,79-126
+openapi.json
+  s_616c21e0e702ed::t_b6f56a8ac3d357 1-52,77-645,670-948,950-958,960-1054,1056-1064,1066-1102,1104-1112,1114-1169,1171-1179,1181-1193,1195-1263,1265-1273,1275-1314,1316-1324,1326-1338
+  s_616c21e0e702ed::t_e482782ff85af9 53-76,646-669,949,959,1055,1065,1103,1113,1170,1180,1194,1264,1274,1315,1325
+sdk/mcp-tools.json
+  s_616c21e0e702ed::t_b6f56a8ac3d357 1-1309
+src/pitdemo/cli.py
+  s_616c21e0e702ed::t_4fe7fabf9eed72 99
+sdk/schema.json
+  s_616c21e0e702ed::t_9bba68e77592f9 52-75,726-749
+AGENTS.md
+  s_616c21e0e702ed::t_4fe7fabf9eed72 62,91-93
+README.md
+  s_616c21e0e702ed::t_4fe7fabf9eed72 76-88
+  s_616c21e0e702ed::t_6baca5872f3fde 89
+sdk/ts/src/schemas.ts
+  s_616c21e0e702ed::t_9bba68e77592f9 25-27,61-62
+  s_616c21e0e702ed::t_964be78250514e 63
+src/pitdemo/__init__.py
+  s_616c21e0e702ed::t_b6f56a8ac3d357 4-7
+src/pitdemo/api/http.py
+  s_616c21e0e702ed::t_b6f56a8ac3d357 14,78,85
+  s_616c21e0e702ed::t_50bfd62c0e3ac0 8,90-106
+  s_616c21e0e702ed::t_e482782ff85af9 21,29,50-51,53-57,168-169,171-177
+  s_616c21e0e702ed::t_28d26b3c439845 107
+sdk/python/pitdemo_sdk/models.py
+  s_616c21e0e702ed::t_9bba68e77592f9 22-30,181-189
+  s_616c21e0e702ed::t_d28420e863bb46 190-191
+.github/workflows/ci.yml
+  s_616c21e0e702ed::t_4fe7fabf9eed72 68,72
+docs/llms.txt
+  s_616c21e0e702ed::t_4fe7fabf9eed72 35-37
+uv.lock
+  s_616c21e0e702ed::t_37066ad4e00e17 2,130-135,566-567,776-790,913-974,1460-1493,1536-1544,1653,1678,1909-1923,2109-2120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20bcdd1f579f7b818cab3307ff34d690475fd494",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
