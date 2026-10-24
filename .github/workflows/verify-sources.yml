@@ -1,0 +1,46 @@
+name: Verify sources
+
+# Weekly re-check of the real data against what is committed: SEC data still
+# validates, committed history is unchanged upstream, splits still cross-check
+# against prices, and every primary-source URL resolves. Fetches into a temp
+# directory; never modifies the repo. See scripts/ci/verify_sources.py.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # SEC asks for a descriptive User-Agent with a contact, e.g. "Jane Doe jane@example.com".
+      # Set it under Settings > Secrets and variables > Actions > Variables.
+      SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+    steps:
+      - name: Require SEC_USER_AGENT
+        run: |
+          if [ -z "$SEC_USER_AGENT" ]; then
+            echo "::error::Set the repository variable SEC_USER_AGENT (e.g. 'Your Name you@example.com')."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Verify sources
+        run: uv run python scripts/ci/verify_sources.py

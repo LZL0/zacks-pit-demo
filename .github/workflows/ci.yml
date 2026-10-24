@@ -8,19 +8,34 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels its older runs; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
+    name: check (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest version pyproject.toml allows, and the newest release.
+        python: ["3.12", "3.15"]
+    env:
+      PRIMARY: ${{ matrix.python == '3.12' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
+          python-version: ${{ matrix.python }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: sdk/ts/package-lock.json
 
@@ -29,23 +44,54 @@ jobs:
           uv sync --locked
           npm ci --prefix sdk/ts --no-audit --no-fund
 
+      - name: Confirm interpreter
+        run: uv run python -c "import sys; v = '.'.join(map(str, sys.version_info[:2])); print(sys.version); assert v == '${{ matrix.python }}', v"
+
       - name: Lint
+        if: env.PRIMARY == 'true'
         run: |
           uv run ruff check
           uv run ruff format --check
 
       - name: Type-check
+        if: env.PRIMARY == 'true'
         run: |
           uv run mypy src --strict
-          uv run mypy --strict sdk/python/pitdemo_sdk scripts/record
+          uv run mypy --strict sdk/python/pitdemo_sdk scripts/record scripts/ci
           npm run --prefix sdk/ts build
 
-      # Tests run offline against the committed raw data (EDGAR JSON, corporate actions)
-      # and the committed synthetic estimates. They include the SDK drift checks.
+      # Offline: committed raw data (EDGAR JSON, corporate actions) and committed
+      # synthetic estimates. Includes SDK drift checks and the docs-figures check.
       - name: Test
         run: uv run pytest
 
       - name: SDKs match the schema (regenerate and diff)
+        if: env.PRIMARY == 'true'
         run: |
           uv run demo sdk
           git diff --exit-code -- sdk/
+
+  smoke:
+    name: end-to-end smoke (HTTP server, both SDKs, MCP stdio)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: sdk/ts/package-lock.json
+
+      - name: Install
+        run: |
+          uv sync --locked
+          npm ci --prefix sdk/ts --no-audit --no-fund
+
+      - name: Smoke test
+        run: uv run python scripts/ci/smoke.py
