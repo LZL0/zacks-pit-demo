@@ -7,7 +7,11 @@ using MCP get the same numbers, the same exclusions and the same warnings.
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
+
+from pydantic import BaseModel, ValidationError
 
 from pitdemo.calendar import trading_days
 from pitdemo.ids import (
@@ -21,6 +25,7 @@ from pitdemo.ids import (
 )
 from pitdemo.periods import ResolvedPeriod, is_relative, parse_fixed, resolve_period
 from pitdemo.schemas import (
+    PATTERN_HINTS,
     AdjustmentExplanation,
     Basis,
     ConsensusResult,
@@ -70,6 +75,46 @@ class InsufficientEstimatesError(ServiceError):
 
 class InvalidRequestError(ServiceError):
     kind: ErrorKind = "InvalidRequest"
+
+
+def describe_validation_errors(
+    errors: Sequence[Mapping[str, Any]], names: Mapping[str, str] | None = None
+) -> str:
+    """Plain-language summary of Pydantic validation errors (no raw regexes).
+
+    Used by the HTTP API and the MCP server so both say the same thing.
+    """
+    problems = []
+    for e in errors:
+        loc = [
+            (names or {}).get(str(p), str(p))
+            for p in e.get("loc", ())
+            if p not in ("query", "body")
+        ]
+        field = ".".join(loc) or "request"
+        pattern = (e.get("ctx") or {}).get("pattern")
+        if e.get("type") == "string_pattern_mismatch" and pattern in PATTERN_HINTS:
+            problems.append(f"{field}: {e.get('input')!r} is not {PATTERN_HINTS[pattern]}")
+        else:
+            problems.append(f"{field}: {str(e.get('msg', '')).removeprefix('Value error, ')}")
+    return "; ".join(problems) or "invalid request"
+
+
+def validated[Q: BaseModel](
+    model: type[Q], names: Mapping[str, str] | None = None, **params: Any
+) -> Q:
+    """Validate parameters with a query model; raise a typed ``InvalidRequestError``.
+
+    ``names`` maps model field names to the caller's argument names for messages
+    (the MCP tools call the period ``fiscal_period``).
+    """
+    try:
+        return model.model_validate(params)
+    except ValidationError as exc:
+        raise InvalidRequestError(
+            describe_validation_errors(exc.errors(), names),
+            hint="Check the parameter formats in the tool or API description.",
+        ) from exc
 
 
 def parse_day(value: str | dt.date, name: str) -> dt.date:

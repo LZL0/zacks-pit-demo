@@ -49,6 +49,30 @@
       "title": "AdjustmentExplanation",
       "type": "object"
     },
+    "CacheInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "hits": {
+          "title": "Hits",
+          "type": "integer"
+        },
+        "misses": {
+          "title": "Misses",
+          "type": "integer"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "size",
+        "hits",
+        "misses"
+      ],
+      "title": "CacheInfo",
+      "type": "object"
+    },
     "ConsensusPoint": {
       "additionalProperties": false,
       "properties": {
@@ -96,6 +120,48 @@
         "insufficient"
       ],
       "title": "ConsensusPoint",
+      "type": "object"
+    },
+    "ConsensusQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "$ref": "#/$defs/InstantParam"
+        },
+        "basis": {
+          "default": "adjusted",
+          "enum": [
+            "adjusted",
+            "unadjusted"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "known_as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstantParam"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ignore corporate actions announced after this instant."
+        },
+        "period": {
+          "$ref": "#/$defs/PeriodParam"
+        },
+        "ticker": {
+          "$ref": "#/$defs/TickerParam"
+        }
+      },
+      "required": [
+        "ticker",
+        "period",
+        "as_of"
+      ],
+      "title": "ConsensusQuery",
       "type": "object"
     },
     "ConsensusResult": {
@@ -534,6 +600,19 @@
       "title": "CorporateActionList",
       "type": "object"
     },
+    "CorporateActionsQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "ticker": {
+          "$ref": "#/$defs/TickerParam"
+        }
+      },
+      "required": [
+        "ticker"
+      ],
+      "title": "CorporateActionsQuery",
+      "type": "object"
+    },
     "ErrorResponse": {
       "additionalProperties": false,
       "properties": {
@@ -616,6 +695,68 @@
       "title": "Exclusion",
       "type": "object"
     },
+    "ExplainQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "period": {
+          "$ref": "#/$defs/PeriodParam",
+          "default": "FY1"
+        },
+        "ticker": {
+          "$ref": "#/$defs/TickerParam"
+        }
+      },
+      "required": [
+        "ticker",
+        "date"
+      ],
+      "title": "ExplainQuery",
+      "type": "object"
+    },
+    "FixedPeriodParam": {
+      "description": "Fixed fiscal-year label, e.g. FY2025.",
+      "pattern": "^\\s*[Ff][Yy][0-9]{4}\\s*$",
+      "type": "string"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "description": "Dated API version, e.g. 2026-10.",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "cache": {
+          "$ref": "#/$defs/CacheInfo"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "api_version",
+        "cache"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "InstantParam": {
+      "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+      "pattern": "^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+      "type": "string"
+    },
+    "PeriodParam": {
+      "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+      "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+      "type": "string"
+    },
     "RevisionSignal": {
       "additionalProperties": false,
       "description": "Per-broker revisions over a lookback window, comparing like with like.",
@@ -678,6 +819,34 @@
       "title": "RevisionSignal",
       "type": "object"
     },
+    "RevisionsQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "$ref": "#/$defs/InstantParam"
+        },
+        "lookback_days": {
+          "default": 30,
+          "maximum": 365,
+          "minimum": 1,
+          "title": "Lookback Days",
+          "type": "integer"
+        },
+        "period": {
+          "$ref": "#/$defs/PeriodParam"
+        },
+        "ticker": {
+          "$ref": "#/$defs/TickerParam"
+        }
+      },
+      "required": [
+        "ticker",
+        "period",
+        "as_of"
+      ],
+      "title": "RevisionsQuery",
+      "type": "object"
+    },
     "SecurityRef": {
       "additionalProperties": false,
       "properties": {
@@ -715,6 +884,119 @@
         "cik"
       ],
       "title": "SecurityRef",
+      "type": "object"
+    },
+    "SeriesQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "default": "adjusted",
+          "enum": [
+            "adjusted",
+            "unadjusted"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "end": {
+          "format": "date",
+          "title": "End",
+          "type": "string"
+        },
+        "known_as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstantParam"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "period": {
+          "$ref": "#/$defs/FixedPeriodParam"
+        },
+        "start": {
+          "format": "date",
+          "title": "Start",
+          "type": "string"
+        },
+        "ticker": {
+          "$ref": "#/$defs/TickerParam"
+        }
+      },
+      "required": [
+        "ticker",
+        "period",
+        "start",
+        "end"
+      ],
+      "title": "SeriesQuery",
+      "type": "object"
+    },
+    "TickerParam": {
+      "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+      "pattern": "^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+      "type": "string"
+    },
+    "Universe": {
+      "additionalProperties": false,
+      "description": "Securities listed on a date. Delisted names drop out; their history stays.",
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "securities": {
+          "items": {
+            "$ref": "#/$defs/UniverseMember"
+          },
+          "title": "Securities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "date",
+        "securities"
+      ],
+      "title": "Universe",
+      "type": "object"
+    },
+    "UniverseMember": {
+      "additionalProperties": false,
+      "properties": {
+        "security_id": {
+          "title": "Security Id",
+          "type": "string"
+        },
+        "ticker": {
+          "description": "Ticker in use on the requested date.",
+          "title": "Ticker",
+          "type": "string"
+        }
+      },
+      "required": [
+        "security_id",
+        "ticker"
+      ],
+      "title": "UniverseMember",
+      "type": "object"
+    },
+    "UniverseQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date"
+      ],
+      "title": "UniverseQuery",
       "type": "object"
     },
     "Versions": {

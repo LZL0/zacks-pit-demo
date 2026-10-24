@@ -65,11 +65,11 @@ jobs:
       - name: Test
         run: uv run pytest
 
-      - name: SDKs match the schema (regenerate and diff)
+      - name: API spec, SDKs and MCP tools match the code (regenerate and diff)
         if: env.PRIMARY == 'true'
         run: |
           uv run demo sdk
-          git diff --exit-code -- sdk/
+          git diff --exit-code -- openapi.json sdk/
 
   smoke:
     name: end-to-end smoke (HTTP server, both SDKs, MCP stdio)

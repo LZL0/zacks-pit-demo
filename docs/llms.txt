@@ -32,5 +32,7 @@ Errors are typed: NotFound, InsufficientEstimates, InvalidRequest (JSON with err
 ## Docs
 
 - [Methodology](methodology.md): consensus rules, split and spin-off handling, PIT guarantees, what is synthetic.
-- [Schema](../sdk/schema.json): JSON Schema for every response; Python (Pydantic) and TypeScript (Zod) SDKs are generated from it.
+- [OpenAPI spec](../openapi.json): the HTTP API (OpenAPI 3.1, version 2026-10).
+- [Schema](../sdk/schema.json): JSON Schema for every request and response; Python (Pydantic) and TypeScript (Zod) SDKs are generated from it.
+- [MCP tools](../sdk/mcp-tools.json): the three tool definitions with their input and output schemas.
 - [Corporate actions](../data/raw/corporate_actions.csv): every row cites a primary source.

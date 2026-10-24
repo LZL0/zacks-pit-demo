@@ -12,17 +12,50 @@ import json
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Literal, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
+from pydantic import Field
 
-from pitdemo.schemas import AdjustmentExplanation, ConsensusResult, CorporateActionList
-from pitdemo.service import Service, ServiceError
+from pitdemo.schemas import (
+    INSTANT_DESCRIPTION,
+    INSTANT_PATTERN,
+    PERIOD_DESCRIPTION,
+    PERIOD_PATTERN,
+    TICKER_DESCRIPTION,
+    TICKER_PATTERN,
+    AdjustmentExplanation,
+    Basis,
+    ConsensusQuery,
+    ConsensusResult,
+    CorporateActionList,
+    CorporateActionsQuery,
+    ExplainQuery,
+)
+from pitdemo.service import Service, ServiceError, validated
 from pitdemo.store import Store
 
 MAX_ITEMS = 25
+
+# Tool arguments advertise the same patterns as the query models (so the model sees the
+# expected formats) but are validated inside each tool with those query models, so a bad
+# argument comes back as the same typed InvalidRequest error the HTTP API returns,
+# rather than a raw Pydantic message.
+TickerArg = Annotated[
+    str, Field(description=TICKER_DESCRIPTION, json_schema_extra={"pattern": TICKER_PATTERN})
+]
+PeriodArg = Annotated[
+    str, Field(description=PERIOD_DESCRIPTION, json_schema_extra={"pattern": PERIOD_PATTERN})
+]
+InstantArg = Annotated[
+    str, Field(description=INSTANT_DESCRIPTION, json_schema_extra={"pattern": INSTANT_PATTERN})
+]
+DateArg = Annotated[
+    str, Field(description="ISO date (YYYY-MM-DD).", json_schema_extra={"format": "date"})
+]
+MCP_NAMES = {"period": "fiscal_period"}
 T = TypeVar("T")
 
 INSTRUCTIONS = """\
@@ -98,20 +131,30 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
         ),
     )
     def get_consensus(
-        ticker: str,
-        fiscal_period: str,
-        as_of: str,
-        basis: Literal["adjusted", "unadjusted"] = "adjusted",
-        known_as_of: str | None = None,
+        ticker: TickerArg,
+        fiscal_period: PeriodArg,
+        as_of: InstantArg,
+        basis: Basis = "adjusted",
+        known_as_of: InstantArg | None = None,
     ) -> ConsensusResult:
         s = svc()
-        return _call(
-            lambda: s.require_sufficient(
-                s.get_consensus(
-                    ticker, fiscal_period, as_of, basis, known_as_of, max_items=MAX_ITEMS
-                )
+
+        def run() -> ConsensusResult:
+            q = validated(
+                ConsensusQuery,
+                MCP_NAMES,
+                ticker=ticker,
+                period=fiscal_period,
+                as_of=as_of,
+                basis=basis,
+                known_as_of=known_as_of,
             )
-        )
+            result = s.get_consensus(
+                q.ticker, q.period, q.as_of, q.basis, q.known_as_of, max_items=MAX_ITEMS
+            )
+            return s.require_sufficient(result)
+
+        return _call(run)
 
     @mcp.tool(
         title="Explain split adjustment and exclusions",
@@ -126,10 +169,15 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
         ),
     )
     def explain_adjustment(
-        ticker: str, date: str, fiscal_period: str = "FY1"
+        ticker: TickerArg, date: DateArg, fiscal_period: PeriodArg = "FY1"
     ) -> AdjustmentExplanation:
         s = svc()
-        return _call(lambda: s.explain(ticker, date, fiscal_period, max_items=MAX_ITEMS))
+
+        def run() -> AdjustmentExplanation:
+            q = validated(ExplainQuery, MCP_NAMES, ticker=ticker, date=date, period=fiscal_period)
+            return s.explain(q.ticker, q.date, q.period, max_items=MAX_ITEMS)
+
+        return _call(run)
 
     @mcp.tool(
         title="List corporate actions",
@@ -141,9 +189,13 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
             "`ticker` may be a current or former ticker, or a SEC-#### id."
         ),
     )
-    def list_corporate_actions(ticker: str) -> CorporateActionList:
+    def list_corporate_actions(ticker: TickerArg) -> CorporateActionList:
         s = svc()
-        return _call(lambda: s.corporate_actions(ticker))
+
+        def run() -> CorporateActionList:
+            return s.corporate_actions(validated(CorporateActionsQuery, ticker=ticker).ticker)
+
+        return _call(run)
 
     return mcp
 

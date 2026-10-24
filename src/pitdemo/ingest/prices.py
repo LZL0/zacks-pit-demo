@@ -15,11 +15,13 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import httpx
 import polars as pl
+from pydantic import ValidationError
 
+from pitdemo.ingest.upstream import UpstreamFormatError, YahooChartEnvelope, parse_upstream
 from pitdemo.schemas import PricesFrame
 
 CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
@@ -50,29 +52,47 @@ def fetch_chart(
         CHART_URL.format(ticker=ticker),
         params={"period1": p1, "period2": p2, "interval": "1d", "events": "split"},
     )
-    body = cast(dict[str, Any], resp.json())
-    chart = body.get("chart", {})
-    if resp.status_code != 200 or not chart.get("result"):
-        err = (chart.get("error") or {}).get("description", f"HTTP {resp.status_code}")
-        return PriceFetch(ticker, None, (), str(err))
-    res = chart["result"][0]
+    what = f"Yahoo chart for {ticker}"
+    if resp.status_code != 200:
+        # Not a data response (a delisted symbol's 404, a 429, a 5xx...). Use the declared
+        # error if the body has one, otherwise the status; either way it is reported for
+        # this ticker rather than aborting the whole price check.
+        try:
+            declared = YahooChartEnvelope.model_validate_json(resp.content).chart.error
+        except ValidationError:
+            declared = None
+        reason = declared.description if declared and declared.description else None
+        return PriceFetch(ticker, None, (), reason or f"HTTP {resp.status_code}")
+    try:
+        body: Any = resp.json()
+    except ValueError as exc:
+        raise UpstreamFormatError(f"{what} is not JSON") from exc
+    envelope = parse_upstream(YahooChartEnvelope, body, what).chart
+    if envelope.error is not None:
+        # The source declared an error on a 200 (e.g. unknown symbol): report, don't fail.
+        return PriceFetch(ticker, None, (), envelope.error.description or "error")
+    if not envelope.result:
+        # A 200 with neither a result nor an error is a format change, not missing data:
+        # treating it as "no data" would silently skip the split cross-check.
+        raise UpstreamFormatError(f"{what} returned neither a result nor an error")
+    res = envelope.result[0]
 
     def to_date(ts: int) -> dt.date:
         return (dt.datetime.fromtimestamp(ts, dt.UTC) + NEW_YORK_OFFSET).date()
 
-    quote = res["indicators"]["quote"][0]
+    quote = res.indicators.quote[0]
     prices = pl.DataFrame(
         {
-            "security_id": [security_id] * len(res["timestamp"]),
-            "date": [to_date(t) for t in res["timestamp"]],
-            "close": quote["close"],
-            "volume": [float(v) if v is not None else None for v in quote["volume"]],
+            "security_id": [security_id] * len(res.timestamp),
+            "date": [to_date(t) for t in res.timestamp],
+            "close": quote.close,
+            "volume": quote.volume,
         },
         schema=PricesFrame.polars_schema(),
     ).drop_nulls("close")
     splits = tuple(
-        SplitEvent(ticker, to_date(int(s["date"])), float(s["numerator"]) / float(s["denominator"]))
-        for s in res.get("events", {}).get("splits", {}).values()
+        SplitEvent(ticker, to_date(s.date), s.numerator / s.denominator)
+        for s in res.events.splits.values()
     )
     return PriceFetch(ticker, PricesFrame.validate(prices), splits, None)
 

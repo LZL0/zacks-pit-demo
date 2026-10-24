@@ -22,8 +22,23 @@ export type ConsensusResult = z.infer<typeof ConsensusResultSchema>;
 export const AdjustmentExplanationSchema = z.object({ "as_of": z.string().datetime({ offset: true }), "consensus_adjusted": ConsensusResultSchema, "fiscal_period": z.string(), "naive_mean": z.union([z.number(), z.null()]).describe("Average of raw published values with no basis handling, for contrast."), "narrative": z.array(z.string()), "security": SecurityRefSchema }).strict();
 export type AdjustmentExplanation = z.infer<typeof AdjustmentExplanationSchema>;
 
+export const CacheInfoSchema = z.object({ "hits": z.number().int(), "misses": z.number().int(), "size": z.number().int() }).strict();
+export type CacheInfo = z.infer<typeof CacheInfoSchema>;
+
 export const ConsensusPointSchema = z.object({ "as_of": z.string().date(), "count": z.number().int(), "insufficient": z.boolean(), "mean": z.union([z.number(), z.null()]), "median": z.union([z.number(), z.null()]) }).strict();
 export type ConsensusPoint = z.infer<typeof ConsensusPointSchema>;
+
+export const InstantParamSchema = z.string().regex(new RegExp("^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$")).describe("ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).");
+export type InstantParam = z.infer<typeof InstantParamSchema>;
+
+export const PeriodParamSchema = z.string().regex(new RegExp("^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$")).describe("Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.");
+export type PeriodParam = z.infer<typeof PeriodParamSchema>;
+
+export const TickerParamSchema = z.string().regex(new RegExp("^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$")).describe("Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).");
+export type TickerParam = z.infer<typeof TickerParamSchema>;
+
+export const ConsensusQuerySchema = z.object({ "as_of": InstantParamSchema, "basis": z.enum(["adjusted","unadjusted"]).default("adjusted"), "known_as_of": z.union([InstantParamSchema, z.null()]).describe("Ignore corporate actions announced after this instant.").default(null), "period": PeriodParamSchema, "ticker": TickerParamSchema }).strict();
+export type ConsensusQuery = z.infer<typeof ConsensusQuerySchema>;
 
 export const ConsensusSeriesSchema = z.object({ "basis": z.enum(["adjusted","unadjusted"]), "fiscal_period": z.string(), "known_as_of": z.union([z.string().datetime({ offset: true }), z.null()]), "points": z.array(ConsensusPointSchema), "security": SecurityRefSchema }).strict();
 export type ConsensusSeries = z.infer<typeof ConsensusSeriesSchema>;
@@ -31,8 +46,35 @@ export type ConsensusSeries = z.infer<typeof ConsensusSeriesSchema>;
 export const CorporateActionListSchema = z.object({ "actions": z.array(CorporateActionSchema), "security": SecurityRefSchema }).strict();
 export type CorporateActionList = z.infer<typeof CorporateActionListSchema>;
 
+export const CorporateActionsQuerySchema = z.object({ "ticker": TickerParamSchema }).strict();
+export type CorporateActionsQuery = z.infer<typeof CorporateActionsQuerySchema>;
+
 export const ErrorResponseSchema = z.object({ "error": z.enum(["NotFound","InsufficientEstimates","InvalidRequest"]), "hint": z.union([z.string(), z.null()]).default(null), "message": z.string() }).strict();
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
+export const ExplainQuerySchema = z.object({ "date": z.string().date(), "period": PeriodParamSchema, "ticker": TickerParamSchema }).strict();
+export type ExplainQuery = z.infer<typeof ExplainQuerySchema>;
+
+export const FixedPeriodParamSchema = z.string().regex(new RegExp("^\\s*[Ff][Yy][0-9]{4}\\s*$")).describe("Fixed fiscal-year label, e.g. FY2025.");
+export type FixedPeriodParam = z.infer<typeof FixedPeriodParamSchema>;
+
+export const HealthSchema = z.object({ "api_version": z.string().describe("Dated API version, e.g. 2026-10."), "cache": CacheInfoSchema, "ok": z.boolean() }).strict();
+export type Health = z.infer<typeof HealthSchema>;
+
 export const RevisionSignalSchema = z.object({ "as_of": z.string().datetime({ offset: true }), "brokers_compared": z.number().int(), "down": z.number().int(), "fiscal_period": z.string(), "lookback_days": z.number().int(), "mean_pct_change": z.union([z.number(), z.null()]), "security": SecurityRefSchema, "unchanged": z.number().int(), "up": z.number().int() }).strict().describe("Per-broker revisions over a lookback window, comparing like with like.");
 export type RevisionSignal = z.infer<typeof RevisionSignalSchema>;
+
+export const RevisionsQuerySchema = z.object({ "as_of": InstantParamSchema, "lookback_days": z.number().int().gte(1).lte(365).default(30), "period": PeriodParamSchema, "ticker": TickerParamSchema }).strict();
+export type RevisionsQuery = z.infer<typeof RevisionsQuerySchema>;
+
+export const SeriesQuerySchema = z.object({ "basis": z.enum(["adjusted","unadjusted"]).default("adjusted"), "end": z.string().date(), "known_as_of": z.union([InstantParamSchema, z.null()]).default(null), "period": FixedPeriodParamSchema, "start": z.string().date(), "ticker": TickerParamSchema }).strict();
+export type SeriesQuery = z.infer<typeof SeriesQuerySchema>;
+
+export const UniverseMemberSchema = z.object({ "security_id": z.string(), "ticker": z.string().describe("Ticker in use on the requested date.") }).strict();
+export type UniverseMember = z.infer<typeof UniverseMemberSchema>;
+
+export const UniverseSchema = z.object({ "date": z.string().date(), "securities": z.array(UniverseMemberSchema) }).strict().describe("Securities listed on a date. Delisted names drop out; their history stays.");
+export type Universe = z.infer<typeof UniverseSchema>;
+
+export const UniverseQuerySchema = z.object({ "date": z.string().date() }).strict();
+export type UniverseQuery = z.infer<typeof UniverseQuerySchema>;

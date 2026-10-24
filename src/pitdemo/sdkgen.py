@@ -1,11 +1,12 @@
-"""SDK generation from one schema.
+"""Everything generated from the one set of Pydantic models in ``schemas.py``.
 
-``schemas.py`` (Pydantic) -> ``sdk/schema.json`` (JSON Schema) -> generated models:
+* ``openapi.json``: the HTTP API spec (FastAPI), dated version ``API_VERSION``
+* ``sdk/schema.json``: JSON Schema for every request and response model, from which
+  * ``sdk/python/pitdemo_sdk/models.py`` (Pydantic, via datamodel-code-generator)
+  * ``sdk/ts/src/schemas.ts`` (Zod, via json-schema-to-zod) are generated
+* ``sdk/mcp-tools.json``: the MCP tool definitions (input and output schemas)
 
-* Python: ``sdk/python/pitdemo_sdk/models.py`` via datamodel-code-generator
-* TypeScript: ``sdk/ts/src/schemas.ts`` via json-schema-to-zod
-
-``tests/test_sdk_parity.py`` and CI regenerate all three and fail on any diff.
+``tests/test_sdk_parity.py`` and CI regenerate all of them and fail on any diff.
 """
 
 from __future__ import annotations
@@ -25,6 +26,32 @@ ROOT = Path(__file__).resolve().parents[2]
 SDK = ROOT / "sdk"
 SCHEMA_PATH = SDK / "schema.json"
 PY_MODELS = SDK / "python" / "pitdemo_sdk" / "models.py"
+OPENAPI_PATH = ROOT / "openapi.json"
+MCP_TOOLS_PATH = SDK / "mcp-tools.json"
+
+
+def _dump(doc: Any) -> str:
+    return json.dumps(doc, indent=2, sort_keys=True) + "\n"
+
+
+def openapi_text() -> str:
+    from pitdemo.api.http import create_app
+
+    return _dump(create_app().openapi())
+
+
+def mcp_tools_text() -> str:
+    import asyncio
+
+    from pitdemo.api.mcp_server import create_server
+
+    tools = asyncio.run(create_server().list_tools())
+    return _dump(
+        {
+            "server": "pit-consensus",
+            "tools": [t.model_dump(mode="json", by_alias=True, exclude_none=True) for t in tools],
+        }
+    )
 
 
 def export_schema() -> dict[str, Any]:
@@ -41,7 +68,7 @@ def export_schema() -> dict[str, Any]:
 
 
 def schema_text() -> str:
-    return json.dumps(export_schema(), indent=2, sort_keys=True) + "\n"
+    return _dump(export_schema())
 
 
 def python_models_text(schema_path: Path = SCHEMA_PATH) -> str:
@@ -69,6 +96,12 @@ def python_models_text(schema_path: Path = SCHEMA_PATH) -> str:
                 "--field-constraints",
                 "--use-double-quotes",
                 "--disable-timestamp",
+                "--collapse-root-models",
+                # A defaulted field is not nullable unless the schema says so
+                # (e.g. lookback_days: int = 30 must not accept None).
+                "--strict-nullable",
+                "--deserialize-default-values",
+                "enum",
                 "--custom-file-header",
                 "# Generated from sdk/schema.json by `demo sdk`. Do not edit by hand.",
             ],
@@ -83,4 +116,6 @@ def write_all() -> list[Path]:
     SCHEMA_PATH.write_text(schema_text())
     PY_MODELS.parent.mkdir(parents=True, exist_ok=True)
     PY_MODELS.write_text(python_models_text())
-    return [SCHEMA_PATH, PY_MODELS]
+    OPENAPI_PATH.write_text(openapi_text())
+    MCP_TOOLS_PATH.write_text(mcp_tools_text())
+    return [SCHEMA_PATH, PY_MODELS, OPENAPI_PATH, MCP_TOOLS_PATH]

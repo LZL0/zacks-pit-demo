@@ -71,14 +71,26 @@ synthetic estimates (seed 42) ──────────┘                 
                                      factors ─► per-estimate basis ─► consensus ─► LRU cache
                                                                                     │
                                               FastAPI ◄── service layer ──► MCP (stdio / streamable HTTP)
-                                                 │
-                         sdk/schema.json ─► Python SDK (Pydantic) + TypeScript SDK (Zod); CI fails on drift
 ```
+
+### One schema, four outputs
+
+Every request and response is a Pydantic model in `src/pitdemo/schemas.py`. Everything else is generated from it by `uv run demo sdk`, committed, and checked in CI: if any committed file differs from what the code generates, the build fails.
+
+```
+src/pitdemo/schemas.py (Pydantic)
+ ├─ openapi.json ............. HTTP API spec (OpenAPI 3.1), version 2026-10
+ ├─ sdk/schema.json ─┬─ sdk/python/pitdemo_sdk/models.py ... Python SDK (Pydantic)
+ │                   └─ sdk/ts/src/schemas.ts ............. TypeScript SDK (Zod)
+ └─ sdk/mcp-tools.json ....... MCP tool definitions (input and output schemas)
+```
+
+**[`openapi.json`](openapi.json)** is the place to start if you want your own client or want to load the API into your tools. The running server also serves it at `/openapi.json` and as interactive docs at `/docs`. The API is versioned by date (`2026-10`) rather than by semver.
 
 | Concern | Choice |
 |---|---|
 | Frames / store | Polars, DuckDB, Parquet |
-| Validation | Pandera (frames entering the store), Pydantic v2 (everything at the boundary) |
+| Validation | Pandera for frames entering the store. Pydantic v2 models in `schemas.py` are the source schema for every boundary: they validate API requests and responses and MCP tool arguments on the server; the SDKs validate with code generated from them (Pydantic in Python, Zod in TypeScript), checking requests before sending and parsing responses strictly. Separate Pydantic models validate the SEC and Yahoo payloads we ingest |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
 | Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12, 3.13, 3.14 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |

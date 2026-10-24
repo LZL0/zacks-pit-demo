@@ -31,17 +31,32 @@ check(a.actions.some((x) => x.action_type === "SPINOFF" && x.ratio === 1), "corp
 const e = await client.explain("NVDA", "2024-06-14", "FY2025");
 check(e.narrative.some((line) => line.includes("SPLIT ratio 10")), "explain: split narrative");
 
-for (const [args, kind, status] of [
-  [["SIVB", "FY2023", "2023-06-01"], "NotFound", 404],
-  [["NVDA", "next", "2024-05-31"], "InvalidRequest", 400],
-]) {
-  try {
-    await client.consensus(...args);
-    check(false, `${kind}: expected an error`);
-  } catch (err) {
-    check(err instanceof PitApiError && err.status === status && err.error?.error === kind, `typed error ${kind}`);
-  }
+try {
+  await client.consensus("SIVB", "FY2023", "2023-06-01");
+  check(false, "NotFound: expected an error");
+} catch (err) {
+  check(err instanceof PitApiError && err.status === 404 && err.error?.error === "NotFound", "typed error NotFound from the server");
 }
+
+// Bad input is rejected by the client's generated schema before any request is sent...
+let calls = 0;
+const counting = new PitClient(process.env.PITDEMO_URL ?? "http://127.0.0.1:8000", (input, init) => {
+  calls += 1;
+  return fetch(input, init);
+});
+try {
+  await counting.consensus("NVDA", "next year", "2024-05-31");
+  check(false, "client-side validation: expected a ZodError");
+} catch (err) {
+  check(err?.name === "ZodError" && calls === 0, "client-side validation rejects a bad period without a request");
+}
+// ...and by the server too, for clients that skip the SDK.
+const raw = await fetch(new URL("/consensus?ticker=NVDA&period=next&as_of=2024-05-31", process.env.PITDEMO_URL ?? "http://127.0.0.1:8000"));
+const rawBody = await raw.json();
+check(raw.status === 400 && rawBody.error === "InvalidRequest", "server rejects a bad period with a typed 400");
+
+const universe = await client.universe("2023-03-01");
+check(universe.securities.some((m) => m.ticker === "SIVB"), "universe: SIVB listed on 2023-03-01");
 
 if (failures > 0) {
   console.error(`${failures} check(s) failed`);

@@ -5,29 +5,44 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from pitdemo import API_VERSION
 from pitdemo.schemas import (
     AdjustmentExplanation,
-    Basis,
+    CacheInfo,
+    ConsensusQuery,
     ConsensusResult,
     ConsensusSeries,
     CorporateActionList,
+    CorporateActionsQuery,
     ErrorResponse,
+    ExplainQuery,
+    Health,
     RevisionSignal,
+    RevisionsQuery,
+    SeriesQuery,
+    Universe,
+    UniverseMember,
+    UniverseQuery,
 )
-from pitdemo.service import Service, ServiceError
+from pitdemo.service import Service, ServiceError, describe_validation_errors
 from pitdemo.store import Store
 
 STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}
+
+# Documented error responses. Too few estimates is not an HTTP error: it is a 200 with
+# `insufficient: true` and the exclusions that caused it.
 ERRORS: dict[int | str, dict[str, object]] = {
-    400: {"model": ErrorResponse},
-    404: {"model": ErrorResponse},
-    422: {"model": ErrorResponse},
+    400: {"model": ErrorResponse, "description": "InvalidRequest: a parameter is malformed"},
+    404: {
+        "model": ErrorResponse,
+        "description": "NotFound: unknown ticker, or ticker not in use on the requested date",
+    },
 }
 
 
@@ -48,16 +63,35 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
 
     app = FastAPI(
         title="Point-in-time consensus demo",
-        version="0.1.0",
+        version=API_VERSION,
         description=(
             "Point-in-time EPS consensus with per-estimate split adjustment. "
             "Analyst estimates are SYNTHETIC; actuals (SEC EDGAR) and corporate actions "
             "(primary sources) are real."
         ),
         lifespan=lifespan,
+        servers=[{"url": "http://127.0.0.1:8000", "description": "Local (`uv run demo serve`)"}],
     )
     if service is not None:
         app.state.service = service
+
+    generate_openapi = app.openapi
+
+    def openapi() -> dict[str, Any]:
+        """FastAPI documents a 422 for every endpoint with parameters, but validation
+        errors here are typed 400 ``InvalidRequest`` responses (see the handler below),
+        so the default 422 and its schemas are removed to keep the spec truthful."""
+        if app.openapi_schema is None:
+            spec = generate_openapi()
+            for path in spec.get("paths", {}).values():
+                for operation in path.values():
+                    operation.get("responses", {}).pop("422", None)
+            for name in ("HTTPValidationError", "ValidationError"):
+                spec.get("components", {}).get("schemas", {}).pop(name, None)
+            app.openapi_schema = spec
+        return app.openapi_schema
+
+    app.openapi = openapi  # type: ignore[method-assign]
 
     def svc(request: Request) -> Service:
         s = request.app.state.service
@@ -66,13 +100,9 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        problems = "; ".join(
-            f"{'.'.join(str(p) for p in e.get('loc', ())[1:]) or 'request'}: {e.get('msg')}"
-            for e in exc.errors()
-        )
         body = ErrorResponse(
             error="InvalidRequest",
-            message=problems or "invalid request",
+            message=describe_validation_errors(exc.errors()),
             hint="See /docs for parameter types and allowed values.",
         )
         return JSONResponse(status_code=400, content=body.model_dump(mode="json"))
@@ -83,56 +113,48 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
             status_code=STATUS[exc.kind], content=exc.to_response().model_dump(mode="json")
         )
 
+    # Query parameters are Pydantic models (schemas.py), shared with the SDKs.
+
     @app.get("/consensus", response_model=ConsensusResult, responses=ERRORS)
-    def get_consensus(
-        request: Request,
-        ticker: Annotated[str, Query(description="Ticker as of `as_of`, or a SEC-#### id.")],
-        period: Annotated[str, Query(description="FY2025-style label, or FY1/FY2.")],
-        as_of: Annotated[str, Query(description="ISO date (end of day UTC) or datetime.")],
-        basis: Annotated[Basis, Query()] = "adjusted",
-        known_as_of: Annotated[
-            str | None, Query(description="Corporate-action knowledge cutoff.")
-        ] = None,
-    ) -> ConsensusResult:
-        return svc(request).get_consensus(ticker, period, as_of, basis, known_as_of)
+    def get_consensus(request: Request, q: Annotated[ConsensusQuery, Query()]) -> ConsensusResult:
+        return svc(request).get_consensus(q.ticker, q.period, q.as_of, q.basis, q.known_as_of)
 
     @app.get("/consensus/series", response_model=ConsensusSeries, responses=ERRORS)
-    def get_series(
-        request: Request,
-        ticker: str,
-        period: str,
-        start: str,
-        end: str,
-        basis: Basis = "adjusted",
-        known_as_of: str | None = None,
-    ) -> ConsensusSeries:
-        return svc(request).get_series(ticker, period, start, end, basis, known_as_of)
+    def get_series(request: Request, q: Annotated[SeriesQuery, Query()]) -> ConsensusSeries:
+        return svc(request).get_series(q.ticker, q.period, q.start, q.end, q.basis, q.known_as_of)
 
     @app.get("/corporate-actions", response_model=CorporateActionList, responses=ERRORS)
-    def get_corporate_actions(request: Request, ticker: str) -> CorporateActionList:
-        return svc(request).corporate_actions(ticker)
+    def get_corporate_actions(
+        request: Request, q: Annotated[CorporateActionsQuery, Query()]
+    ) -> CorporateActionList:
+        return svc(request).corporate_actions(q.ticker)
 
     @app.get("/explain", response_model=AdjustmentExplanation, responses=ERRORS)
-    def get_explain(
-        request: Request, ticker: str, date: str, period: str = "FY1"
-    ) -> AdjustmentExplanation:
-        return svc(request).explain(ticker, date, period, max_items=None)
+    def get_explain(request: Request, q: Annotated[ExplainQuery, Query()]) -> AdjustmentExplanation:
+        return svc(request).explain(q.ticker, q.date, q.period, max_items=None)
 
     @app.get("/revisions", response_model=RevisionSignal, responses=ERRORS)
-    def get_revisions(
-        request: Request, ticker: str, period: str, as_of: str, lookback_days: int = 30
-    ) -> RevisionSignal:
-        return svc(request).revisions(ticker, period, as_of, lookback_days)
+    def get_revisions(request: Request, q: Annotated[RevisionsQuery, Query()]) -> RevisionSignal:
+        return svc(request).revisions(q.ticker, q.period, q.as_of, q.lookback_days)
 
-    @app.get("/universe")
-    def get_universe(request: Request, date: str) -> list[dict[str, str]]:
+    @app.get("/universe", response_model=Universe, responses=ERRORS)
+    def get_universe(request: Request, q: Annotated[UniverseQuery, Query()]) -> Universe:
         """Securities listed on `date` (delisted names drop out; their history stays)."""
-        return [{"security_id": sid, "ticker": t} for sid, t in svc(request).universe(date)]
+        members = [
+            UniverseMember(security_id=sid, ticker=t) for sid, t in svc(request).universe(q.date)
+        ]
+        return Universe(date=q.date, securities=members)
 
-    @app.get("/healthz")
-    def healthz(request: Request) -> dict[str, object]:
+    @app.get("/healthz", response_model=Health)
+    def healthz(request: Request) -> Health:
         s = svc(request)
-        return {"ok": True, "cache": {"size": len(s.cache), **s.cache.stats.__dict__}}
+        return Health(
+            ok=True,
+            api_version=API_VERSION,
+            cache=CacheInfo(
+                size=len(s.cache), hits=s.cache.stats.hits, misses=s.cache.stats.misses
+            ),
+        )
 
     @app.get("/", include_in_schema=False)
     def root() -> dict[str, str]:

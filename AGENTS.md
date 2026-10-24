@@ -48,14 +48,19 @@ Everything else runs offline from the committed `data/raw/` and `data/synthetic/
   OCC notice) that you have opened and confirmed; `known_at` is that filing's acceptance
   time in UTC.
 - **Single source of truth for shapes.** Frames entering the store are validated by the
-  Pandera models in `schemas.py`; everything crossing the API boundary is a Pydantic
-  model in `schemas.py`.
+  Pandera models in `schemas.py`. Everything crossing the API boundary is a Pydantic
+  model in `schemas.py`: responses, and request query models built from shared
+  constrained types (`TickerParam`, `PeriodParam`, `InstantParam`) that the HTTP API,
+  the MCP tools and both SDKs all use. Third-party payloads (SEC, Yahoo) are validated,
+  strictly, by the models in `ingest/upstream.py` before ingestion uses any field from
+  them, and the slim EDGAR file is validated again before it is written. The Python
+  SDK parses responses with `strict=True`; keep it that way.
 
 ## Generated files: regenerate, never hand-edit
 
 | File(s) | Regenerate with |
 |---|---|
-| `sdk/schema.json`, `sdk/python/pitdemo_sdk/models.py`, `sdk/ts/src/schemas.ts` | `uv run demo sdk` (CI fails on drift) |
+| `openapi.json`, `sdk/schema.json`, `sdk/python/pitdemo_sdk/models.py`, `sdk/ts/src/schemas.ts`, `sdk/mcp-tools.json` | `uv run demo sdk` (CI fails on drift) |
 | `data/synthetic/estimates.parquet` | `uv run demo synth` (a test fails if stale) |
 | `docs/nvda_consensus.png` | `uv run demo chart` |
 | `docs/demo.cast`, `docs/demo.mp4`, `docs/demo.gif` | `scripts/record/capture.py` then `render.py` (runs real Claude Code) |
@@ -84,6 +89,9 @@ methodology and agent skill, and its failure message tells you which sentence to
 - Don't commit price data (`data/raw/prices/`, third-party), the DuckDB file, or
   `sdk/ts/node_modules` / `dist`.
 - The `mypy` config targets Python 3.12; CI tests 3.12 through 3.15.
+- The API version is the dated `API_VERSION` in `src/pitdemo/__init__.py` (it becomes
+  `info.version` in `openapi.json`). A breaking change to a request or response model
+  means a new dated version, not an edit in place.
 
 ## Workflow
 

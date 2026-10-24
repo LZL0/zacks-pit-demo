@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as date_aliased
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
@@ -19,11 +19,20 @@ class PitdemoApi(RootModel[Any]):
     ]
 
 
+class CacheInfo(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    hits: Annotated[int, Field(title="Hits")]
+    misses: Annotated[int, Field(title="Misses")]
+    size: Annotated[int, Field(title="Size")]
+
+
 class ConsensusPoint(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    as_of: Annotated[date, Field(title="As Of")]
+    as_of: Annotated[date_aliased, Field(title="As Of")]
     count: Annotated[int, Field(title="Count")]
     insufficient: Annotated[bool, Field(title="Insufficient")]
     mean: Annotated[float | None, Field(title="Mean")]
@@ -47,7 +56,7 @@ class Contributor(BaseModel):
         extra="forbid",
     )
     basis_date: Annotated[
-        date,
+        date_aliased,
         Field(
             description="Date whose share count the raw value is on.",
             title="Basis Date",
@@ -105,7 +114,8 @@ class CorporateAction(BaseModel):
     )
     action_type: Annotated[ActionType, Field(title="Action Type")]
     ex_date: Annotated[
-        date, Field(description="First trading day on the new basis.", title="Ex Date")
+        date_aliased,
+        Field(description="First trading day on the new basis.", title="Ex Date"),
     ]
     known_at: Annotated[
         AwareDatetime,
@@ -119,7 +129,7 @@ class CorporateAction(BaseModel):
             title="Ratio",
         ),
     ]
-    record_date: Annotated[date | None, Field(title="Record Date")]
+    record_date: Annotated[date_aliased | None, Field(title="Record Date")]
     security_id: Annotated[str, Field(title="Security Id")]
     source_url: Annotated[
         str,
@@ -168,6 +178,27 @@ class Exclusion(BaseModel):
     reason: Annotated[Reason, Field(title="Reason")]
 
 
+class Health(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    api_version: Annotated[
+        str, Field(description="Dated API version, e.g. 2026-10.", title="Api Version")
+    ]
+    cache: CacheInfo
+    ok: Annotated[bool, Field(title="Ok")]
+
+
+class InstantParam(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+        ),
+    ]
+
+
 class SecurityRef(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -192,6 +223,23 @@ class SecurityRef(BaseModel):
     ]
 
 
+class UniverseMember(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    security_id: Annotated[str, Field(title="Security Id")]
+    ticker: Annotated[
+        str, Field(description="Ticker in use on the requested date.", title="Ticker")
+    ]
+
+
+class UniverseQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    date: Annotated[date_aliased, Field(title="Date")]
+
+
 class Versions(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -200,6 +248,38 @@ class Versions(BaseModel):
     factors: Annotated[int, Field(title="Factors")]
     fn: Annotated[str, Field(title="Fn")]
     reports: Annotated[int, Field(title="Reports")]
+
+
+class ConsensusQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    as_of: Annotated[
+        str,
+        Field(
+            description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+        ),
+    ]
+    basis: Annotated[Basis, Field(title="Basis")] = Basis.adjusted
+    known_as_of: Annotated[
+        InstantParam | None,
+        Field(description="Ignore corporate actions announced after this instant."),
+    ] = None
+    period: Annotated[
+        str,
+        Field(
+            description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+            pattern="^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+        ),
+    ]
+    ticker: Annotated[
+        str,
+        Field(
+            description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        ),
+    ]
 
 
 class ConsensusResult(BaseModel):
@@ -257,7 +337,7 @@ class ConsensusResult(BaseModel):
         Field(description="Sample standard deviation (n-1).", title="Stdev"),
     ]
     synthetic_estimates: Annotated[
-        bool | None,
+        bool,
         Field(
             description="Analyst estimates in this demo are synthetic; actuals and corporate actions are real.",
             title="Synthetic Estimates",
@@ -271,7 +351,7 @@ class ConsensusResult(BaseModel):
         ),
     ]
     target_basis_date: Annotated[
-        date | None,
+        date_aliased | None,
         Field(
             description="Share basis of the returned values. None means the latest known basis.",
             title="Target Basis Date",
@@ -300,6 +380,40 @@ class CorporateActionList(BaseModel):
     security: SecurityRef
 
 
+class CorporateActionsQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    ticker: Annotated[
+        str,
+        Field(
+            description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        ),
+    ]
+
+
+class ExplainQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    date: Annotated[date_aliased, Field(title="Date")]
+    period: Annotated[
+        str,
+        Field(
+            description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+            pattern="^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+        ),
+    ] = "FY1"
+    ticker: Annotated[
+        str,
+        Field(
+            description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        ),
+    ]
+
+
 class RevisionSignal(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -313,6 +427,66 @@ class RevisionSignal(BaseModel):
     security: SecurityRef
     unchanged: Annotated[int, Field(title="Unchanged")]
     up: Annotated[int, Field(title="Up")]
+
+
+class RevisionsQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    as_of: Annotated[
+        str,
+        Field(
+            description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+        ),
+    ]
+    lookback_days: Annotated[int, Field(ge=1, le=365, title="Lookback Days")] = 30
+    period: Annotated[
+        str,
+        Field(
+            description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+            pattern="^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+        ),
+    ]
+    ticker: Annotated[
+        str,
+        Field(
+            description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        ),
+    ]
+
+
+class SeriesQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    basis: Annotated[Basis, Field(title="Basis")] = Basis.adjusted
+    end: Annotated[date_aliased, Field(title="End")]
+    known_as_of: InstantParam | None = None
+    period: Annotated[
+        str,
+        Field(
+            description="Fixed fiscal-year label, e.g. FY2025.",
+            pattern="^\\s*[Ff][Yy][0-9]{4}\\s*$",
+        ),
+    ]
+    start: Annotated[date_aliased, Field(title="Start")]
+    ticker: Annotated[
+        str,
+        Field(
+            description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        ),
+    ]
+
+
+class Universe(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    date: Annotated[date_aliased, Field(title="Date")]
+    securities: Annotated[list[UniverseMember], Field(title="Securities")]
 
 
 class AdjustmentExplanation(BaseModel):

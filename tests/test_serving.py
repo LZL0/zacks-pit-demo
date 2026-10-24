@@ -12,7 +12,13 @@ from mcp import Client
 
 from pitdemo.api.http import create_app
 from pitdemo.api.mcp_server import MAX_ITEMS, create_server
-from pitdemo.schemas import AdjustmentExplanation, ConsensusResult, CorporateActionList
+from pitdemo.schemas import (
+    AdjustmentExplanation,
+    ConsensusResult,
+    CorporateActionList,
+    Universe,
+    UniverseMember,
+)
 from pitdemo.service import Service
 
 
@@ -64,7 +70,9 @@ def test_http_series_and_actions(http: TestClient) -> None:
 
 def test_http_universe(http: TestClient) -> None:
     r = http.get("/universe", params={"date": "2023-03-01"})
-    assert {"security_id": "SEC-0005", "ticker": "SIVB"} in r.json()
+    universe = Universe.model_validate(r.json())
+    assert universe.date.isoformat() == "2023-03-01"
+    assert UniverseMember(security_id="SEC-0005", ticker="SIVB") in universe.securities
 
 
 def test_openapi_has_typed_models(http: TestClient) -> None:
