@@ -1,0 +1,21 @@
+AGENTS.md
+  s_616c21e0e702ed::t_95cff66fce5350 1-92
+CLAUDE.md
+  s_616c21e0e702ed::t_88f8629b1975c8 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ca9940d9f730552fe1e25c8c04636c77f1970df",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
