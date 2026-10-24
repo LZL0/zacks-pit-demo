@@ -81,8 +81,8 @@ class CompanyFacts(Upstream):
 
 class _SubmissionsFile(Upstream):
     name: str
-    filingFrom: str | None = None
-    filingTo: str | None = None
+    filingFrom: dt.date | None = None
+    filingTo: dt.date | None = None  # decides which history pages are fetched
 
 
 class SubmissionsColumns(Upstream):

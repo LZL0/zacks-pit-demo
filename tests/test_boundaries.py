@@ -359,3 +359,31 @@ def test_sdk_defaulted_fields_are_not_nullable() -> None:
         )
     with pytest.raises(pydantic.ValidationError):
         ExplainQuery.model_validate({"ticker": "NVDA", "date": "2024-06-14", "period": None})
+
+
+def test_yahoo_error_status_with_other_json_is_reported_not_raised() -> None:
+    """A 429/5xx whose JSON body is not a chart envelope is a per-ticker note."""
+    import datetime as dt
+
+    body = {"finance": {"error": {"code": "Too Many Requests"}}}
+    client = httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(429, json=body)))
+    f = fetch_chart(client, "NVDA", "SEC-0001", dt.date(2024, 6, 1), dt.date(2024, 6, 30))
+    assert f.error == "HTTP 429"
+    assert f.prices is None
+
+
+def test_filing_index_page_dates_must_be_dates() -> None:
+    """`filingTo` decides which history pages are fetched; a non-date must not skip pages."""
+    from pitdemo.ingest.edgar import fetch_submissions
+
+    cols = {
+        "accessionNumber": [],
+        "filingDate": [],
+        "acceptanceDateTime": [],
+        "form": [],
+        "items": [],
+    }
+    head = {"filings": {"recent": cols, "files": [{"name": "p1.json", "filingTo": "last year"}]}}
+    client = httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=head)))
+    with pytest.raises(UpstreamFormatError, match="filingTo"):
+        fetch_submissions(client, 1045810)

@@ -19,6 +19,7 @@ from typing import Any
 
 import httpx
 import polars as pl
+from pydantic import ValidationError
 
 from pitdemo.ingest.upstream import UpstreamFormatError, YahooChartEnvelope, parse_upstream
 from pitdemo.schemas import PricesFrame
@@ -52,18 +53,24 @@ def fetch_chart(
         params={"period1": p1, "period2": p2, "interval": "1d", "events": "split"},
     )
     what = f"Yahoo chart for {ticker}"
+    if resp.status_code != 200:
+        # Not a data response (a delisted symbol's 404, a 429, a 5xx...). Use the declared
+        # error if the body has one, otherwise the status; either way it is reported for
+        # this ticker rather than aborting the whole price check.
+        try:
+            declared = YahooChartEnvelope.model_validate_json(resp.content).chart.error
+        except ValidationError:
+            declared = None
+        reason = declared.description if declared and declared.description else None
+        return PriceFetch(ticker, None, (), reason or f"HTTP {resp.status_code}")
     try:
         body: Any = resp.json()
     except ValueError as exc:
-        if resp.status_code != 200:
-            return PriceFetch(ticker, None, (), f"HTTP {resp.status_code}")
         raise UpstreamFormatError(f"{what} is not JSON") from exc
     envelope = parse_upstream(YahooChartEnvelope, body, what).chart
     if envelope.error is not None:
-        # The source declared an error (e.g. a delisted symbol): report, don't fail.
+        # The source declared an error on a 200 (e.g. unknown symbol): report, don't fail.
         return PriceFetch(ticker, None, (), envelope.error.description or "error")
-    if resp.status_code != 200:
-        return PriceFetch(ticker, None, (), f"HTTP {resp.status_code}")
     if not envelope.result:
         # A 200 with neither a result nor an error is a format change, not missing data:
         # treating it as "no data" would silently skip the split cross-check.

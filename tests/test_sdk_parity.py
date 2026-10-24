@@ -98,10 +98,20 @@ def test_openapi_is_a_valid_dated_spec() -> None:
     spec = json.loads(OPENAPI_PATH.read_text())
     validate(spec)
     assert spec["info"]["version"] == API_VERSION
-    assert re.fullmatch(r"\d{4}-\d{2}", API_VERSION)
-    # Every documented status code is one the API actually returns.
-    for path in spec["paths"].values():
-        assert set(path["get"]["responses"]) <= {"200", "400", "404"}
+    assert re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", API_VERSION)
+    # Each endpoint documents exactly the status codes it can return.
+    data = {"200", "400", "404"}
+    expected = {
+        "/consensus": data,
+        "/consensus/series": data,
+        "/corporate-actions": data,
+        "/explain": data,
+        "/revisions": data,
+        "/universe": data,
+        "/healthz": {"200"},
+    }
+    documented = {p: set(v["get"]["responses"]) for p, v in spec["paths"].items()}
+    assert documented == expected
 
 
 def test_openapi_and_sdk_share_one_schema() -> None:

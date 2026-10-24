@@ -76,7 +76,9 @@ def fetch_submissions(client: httpx.Client, cik: int) -> list[dict[str, Any]]:
     index = parse_upstream(SubmissionsHead, head, f"SEC filing index for CIK {cik}")
     pages = [head["filings"]["recent"]]
     for extra in index.filings.files:
-        if (extra.filingTo or "9999") < KEEP_FILINGS_SINCE:
+        if extra.filingTo is not None and extra.filingTo < dt.date.fromisoformat(
+            KEEP_FILINGS_SINCE
+        ):
             continue
         time.sleep(0.15)  # SEC fair-access limit is 10 req/s; stay well under it
         pages.append(_get_json(client, SUBMISSIONS_PAGE_URL.format(name=extra.name)))
