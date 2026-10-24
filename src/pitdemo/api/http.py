@@ -49,9 +49,10 @@ Errors are typed (`InvalidRequest` 400, `NotFound` 404).
 
 **Versioning.** The API is versioned by date; this is version `{API_VERSION}`.
 
-**One schema, four outputs.** This spec, the Python (Pydantic) and TypeScript (Zod) SDKs
-and the MCP tool definitions are all generated from the same Pydantic models, and CI fails
-if any of them drifts. Source and methodology: [{REPO.removeprefix("https://")}]({REPO}).
+**One schema, four outputs.** This spec and the Python (Pydantic) and TypeScript (Zod)
+SDKs are generated from the same Pydantic models. The MCP tools validate their arguments
+with those same request models and advertise the same formats. CI fails if any of them
+drifts. Source and methodology: [{REPO.removeprefix("https://")}]({REPO}).
 """
 
 STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}

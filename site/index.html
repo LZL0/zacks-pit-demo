@@ -26,7 +26,11 @@
       </p>
     </noscript>
     <div id="app"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.73.1/dist/browser/standalone.js"></script>
+    <!-- Pinned version and pinned bytes: the browser refuses the script if it changes. -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.73.1/dist/browser/standalone.js"
+      integrity="sha384-kYDGzV91Jnn3TbHINV3nt54riK2uMJDfN5Al8dAkz4FssELTBWbD8rgw32sTKfOi"
+      crossorigin="anonymous"></script>
     <script>
       Scalar.createApiReference("#app", {
         url: "./openapi.json",
