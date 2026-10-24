@@ -121,8 +121,9 @@ hosted manifest and the reference come from the same deploy.
 Answer these before building anything else:
 - [ ] **Localhost from an HTTPS add-in.** An add-in served from GitHub Pages (HTTPS)
   calling `http://127.0.0.1:8000`: does it work in Excel on Windows (WebView2)? Covers
-  mixed content, CORS and Private Network Access preflights (WebView2 is Chromium-based). The API will need `CORSMiddleware` for the add-in's
-  origin, and possibly an `Access-Control-Allow-Private-Network` header.
+  mixed content, CORS and Private Network Access preflights (WebView2 is
+  Chromium-based). The API will need `CORSMiddleware` for the add-in's origin, and
+  possibly an `Access-Control-Allow-Private-Network` header.
 - [ ] **Manifest format.** Do custom functions work with the unified JSON manifest, or
   do they still need the XML add-in manifest? Use whichever Excel on Windows supports
   (and note what Mac would need, for later).
