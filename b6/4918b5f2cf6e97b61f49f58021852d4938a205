@@ -1,0 +1,33 @@
+tests/test_verify_sources.py
+  s_616c21e0e702ed::t_1087ec699f5617 1-53
+.github/workflows/verify-sources.yml
+  s_616c21e0e702ed::t_12f754f33209ed 1-46
+scripts/ci/smoke.py
+  s_616c21e0e702ed::t_c30cd433120d28 5,82-89,91
+scripts/ci/verify_sources.py
+  s_616c21e0e702ed::t_1087ec699f5617 113-117
+  s_616c21e0e702ed::t_0860b28958cda8 1-112,118-135
+renovate.json
+  s_616c21e0e702ed::t_f03adcb872895e 4-33
+.github/workflows/ci.yml
+  s_616c21e0e702ed::t_13617271a2b65d 11-15,20,29,31,36,38,79,81,85,87
+README.md
+  s_616c21e0e702ed::t_c11b2516b1428d 82,95,104
+  s_616c21e0e702ed::t_2c34eb64af3f06 105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b64918b5f2cf6e97b61f49f58021852d4938a205",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
