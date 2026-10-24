@@ -378,29 +378,59 @@ def _normalize(value: str) -> str:
     return value.strip().upper()
 
 
-TICKER_PATTERN = r"^\s*([A-Za-z][A-Za-z0-9.\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\s*$"
+def _normalize_instant(value: str) -> str:
+    """Strip and upper-case (``t``/``z`` -> ``T``/``Z``), then check it is a real instant.
+
+    The pattern only checks the shape; ``2024-02-30`` has the right shape but is not a
+    date, so it is rejected here (and the server never sees it).
+    """
+    text = value.strip().upper()
+    try:
+        if len(text) == 10:
+            dt.date.fromisoformat(text)
+        else:
+            dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{value!r} is not a real calendar date or time") from exc
+    return text
+
+
+# Generic tickers are letters, digits and dots (BRK.B); a hyphen is only valid in the
+# SEC-#### security-id form, so "SEC-ABC" fails validation instead of reaching lookup.
+TICKER_PATTERN = r"^\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\s*$"
 PERIOD_PATTERN = r"^\s*[Ff][Yy]([0-9]{4}|[12])\s*$"
 FIXED_PERIOD_PATTERN = r"^\s*[Ff][Yy][0-9]{4}\s*$"
 INSTANT_PATTERN = (
-    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}"
-    r"([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$"
+    r"^\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    r"([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\s*$"
+)
+
+# Plain-language expectations for each pattern, used in error messages instead of the
+# regex (HTTP and MCP both use these).
+PATTERN_HINTS = {
+    TICKER_PATTERN: "a ticker such as NVDA or a security id such as SEC-0005",
+    PERIOD_PATTERN: "a fiscal-year label such as FY2025, or FY1/FY2",
+    FIXED_PERIOD_PATTERN: "a fixed fiscal-year label such as FY2025 (FY1/FY2 jump at each "
+    "fiscal-year roll, so series need a fixed label)",
+    INSTANT_PATTERN: "an ISO date (YYYY-MM-DD) or ISO datetime",
+}
+
+TICKER_DESCRIPTION = (
+    "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005)."
+)
+PERIOD_DESCRIPTION = "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2."
+INSTANT_DESCRIPTION = (
+    "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given)."
 )
 
 type TickerParam = Annotated[
     str,
-    Field(
-        pattern=TICKER_PATTERN,
-        description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent "
-        "security id (e.g. SEC-0005).",
-    ),
+    Field(pattern=TICKER_PATTERN, description=TICKER_DESCRIPTION),
     AfterValidator(_normalize),
 ]
 type PeriodParam = Annotated[
     str,
-    Field(
-        pattern=PERIOD_PATTERN,
-        description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
-    ),
+    Field(pattern=PERIOD_PATTERN, description=PERIOD_DESCRIPTION),
     AfterValidator(_normalize),
 ]
 type FixedPeriodParam = Annotated[
@@ -410,11 +440,8 @@ type FixedPeriodParam = Annotated[
 ]
 type InstantParam = Annotated[
     str,
-    Field(
-        pattern=INSTANT_PATTERN,
-        description="ISO date (read as the end of that day, UTC) or ISO datetime "
-        "(UTC unless an offset is given).",
-    ),
+    Field(pattern=INSTANT_PATTERN, description=INSTANT_DESCRIPTION),
+    AfterValidator(_normalize_instant),
 ]
 
 

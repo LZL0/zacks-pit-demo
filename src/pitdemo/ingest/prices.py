@@ -15,12 +15,12 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import httpx
 import polars as pl
 
-from pitdemo.ingest.upstream import YahooChartResult, parse_upstream
+from pitdemo.ingest.upstream import UpstreamFormatError, YahooChartEnvelope, parse_upstream
 from pitdemo.schemas import PricesFrame
 
 CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
@@ -51,12 +51,24 @@ def fetch_chart(
         CHART_URL.format(ticker=ticker),
         params={"period1": p1, "period2": p2, "interval": "1d", "events": "split"},
     )
-    body = cast(dict[str, Any], resp.json())
-    chart = body.get("chart", {})
-    if resp.status_code != 200 or not chart.get("result"):
-        err = (chart.get("error") or {}).get("description", f"HTTP {resp.status_code}")
-        return PriceFetch(ticker, None, (), str(err))
-    res = parse_upstream(YahooChartResult, chart["result"][0], f"Yahoo chart for {ticker}")
+    what = f"Yahoo chart for {ticker}"
+    try:
+        body: Any = resp.json()
+    except ValueError as exc:
+        if resp.status_code != 200:
+            return PriceFetch(ticker, None, (), f"HTTP {resp.status_code}")
+        raise UpstreamFormatError(f"{what} is not JSON") from exc
+    envelope = parse_upstream(YahooChartEnvelope, body, what).chart
+    if envelope.error is not None:
+        # The source declared an error (e.g. a delisted symbol): report, don't fail.
+        return PriceFetch(ticker, None, (), envelope.error.description or "error")
+    if resp.status_code != 200:
+        return PriceFetch(ticker, None, (), f"HTTP {resp.status_code}")
+    if not envelope.result:
+        # A 200 with neither a result nor an error is a format change, not missing data:
+        # treating it as "no data" would silently skip the split cross-check.
+        raise UpstreamFormatError(f"{what} returned neither a result nor an error")
+    res = envelope.result[0]
 
     def to_date(ts: int) -> dt.date:
         return (dt.datetime.fromtimestamp(ts, dt.UTC) + NEW_YORK_OFFSET).date()

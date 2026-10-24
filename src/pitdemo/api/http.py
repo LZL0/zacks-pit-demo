@@ -13,10 +13,6 @@ from fastapi.responses import JSONResponse
 
 from pitdemo import API_VERSION
 from pitdemo.schemas import (
-    FIXED_PERIOD_PATTERN,
-    INSTANT_PATTERN,
-    PERIOD_PATTERN,
-    TICKER_PATTERN,
     AdjustmentExplanation,
     CacheInfo,
     ConsensusQuery,
@@ -34,19 +30,11 @@ from pitdemo.schemas import (
     UniverseMember,
     UniverseQuery,
 )
-from pitdemo.service import Service, ServiceError
+from pitdemo.service import Service, ServiceError, describe_validation_errors
 from pitdemo.store import Store
 
-# Plain-language expectations for pattern-checked parameters (the raw regex is unhelpful).
-EXPECTED = {
-    TICKER_PATTERN: "a ticker such as NVDA or a security id such as SEC-0005",
-    PERIOD_PATTERN: "a fiscal-year label such as FY2025, or FY1/FY2",
-    FIXED_PERIOD_PATTERN: "a fixed fiscal-year label such as FY2025 (FY1/FY2 jump at each "
-    "fiscal-year roll, so series need a fixed label)",
-    INSTANT_PATTERN: "an ISO date (YYYY-MM-DD) or ISO datetime",
-}
-
 STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}
+
 # Documented error responses. Too few estimates is not an HTTP error: it is a 200 with
 # `insufficient: true` and the exclusions that caused it.
 ERRORS: dict[int | str, dict[str, object]] = {
@@ -112,17 +100,9 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        problems = []
-        for e in exc.errors():
-            field = ".".join(str(p) for p in e.get("loc", ())[1:]) or "request"
-            pattern = (e.get("ctx") or {}).get("pattern")
-            if e.get("type") == "string_pattern_mismatch" and pattern in EXPECTED:
-                problems.append(f"{field}: {e.get('input')!r} is not {EXPECTED[pattern]}")
-            else:
-                problems.append(f"{field}: {e.get('msg')}")
         body = ErrorResponse(
             error="InvalidRequest",
-            message="; ".join(problems) or "invalid request",
+            message=describe_validation_errors(exc.errors()),
             hint="See /docs for parameter types and allowed values.",
         )
         return JSONResponse(status_code=400, content=body.model_dump(mode="json"))

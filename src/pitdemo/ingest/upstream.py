@@ -11,6 +11,7 @@ reach the store.
 from __future__ import annotations
 
 import datetime as dt
+import json
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -78,6 +79,12 @@ class CompanyFacts(Upstream):
         return self.facts.us_gaap.EarningsPerShareDiluted.units.usd_per_share
 
 
+class _SubmissionsFile(Upstream):
+    name: str
+    filingFrom: str | None = None
+    filingTo: str | None = None
+
+
 class SubmissionsColumns(Upstream):
     """One page of the filing index: parallel arrays, one entry per filing."""
 
@@ -99,6 +106,17 @@ class SubmissionsColumns(Upstream):
         if len(lengths) != 1:
             raise ValueError(f"filing index columns have different lengths: {sorted(lengths)}")
         return self
+
+
+class _SubmissionsFilings(Upstream):
+    recent: SubmissionsColumns
+    files: list[_SubmissionsFile] = Field(default_factory=list)
+
+
+class SubmissionsHead(Upstream):
+    """``https://data.sec.gov/submissions/CIK##########.json`` (the parts we use)."""
+
+    filings: _SubmissionsFilings
 
 
 class EdgarFiling(Upstream):
@@ -157,10 +175,31 @@ class YahooChartResult(Upstream):
         return self
 
 
+class _YahooError(Upstream):
+    code: str | None = None
+    description: str | None = None
+
+
+class _YahooChart(Upstream):
+    result: list[YahooChartResult] | None = None
+    error: _YahooError | None = None
+
+
+class YahooChartEnvelope(Upstream):
+    """The whole chart response: either a result or a declared error."""
+
+    chart: _YahooChart
+
+
 def parse_upstream[M: Upstream](model: type[M], payload: Any, what: str) -> M:
-    """Validate ``payload`` or raise ``UpstreamFormatError`` naming the source and fields."""
+    """Validate ``payload`` or raise ``UpstreamFormatError`` naming the source and fields.
+
+    Validation is strict on the JSON form: JSON-native values pass (date strings, an
+    integer where a float is expected) but a number sent as a string does not, so an
+    upstream type change is caught rather than silently coerced.
+    """
     try:
-        return model.model_validate(payload)
+        return model.model_validate_json(json.dumps(payload), strict=True)
     except ValidationError as exc:
         fields = "; ".join(
             f"{'.'.join(str(p) for p in e['loc']) or '(root)'}: {e['msg']}"

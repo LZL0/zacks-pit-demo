@@ -97,6 +97,9 @@ def python_models_text(schema_path: Path = SCHEMA_PATH) -> str:
                 "--use-double-quotes",
                 "--disable-timestamp",
                 "--collapse-root-models",
+                # A defaulted field is not nullable unless the schema says so
+                # (e.g. lookback_days: int = 30 must not accept None).
+                "--strict-nullable",
                 "--deserialize-default-values",
                 "enum",
                 "--custom-file-header",

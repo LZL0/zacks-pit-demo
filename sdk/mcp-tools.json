@@ -9,26 +9,12 @@
       },
       "description": "EPS consensus for one security and fiscal year, exactly as it could have been computed at `as_of` (no look-ahead in estimates). Returns mean, median, high, low, stdev and count; every contributing estimate with its share-basis decision; every excluded estimate with a reason (stale, not re-confirmed after an earnings release, pre-spin-off perimeter, outlier); the corporate actions applied; and warnings. `ticker` is resolved as of `as_of` (SIVB stopped trading in 2023; SEC-#### ids always work). `fiscal_period`: fixed label like 'FY2025' (preferred) or 'FY1'/'FY2'. `as_of`: ISO date, read as end of that day UTC. `basis`: 'adjusted' = latest share basis (continuous across splits), 'unadjusted' = share basis on as_of. `known_as_of` (optional ISO date) ignores corporate actions announced after it. Errors: NotFound (ticker/date), InsufficientEstimates (<3 qualifying), InvalidRequest.",
       "inputSchema": {
-        "$defs": {
-          "InstantParam": {
-            "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$",
-            "type": "string"
-          },
-          "PeriodParam": {
-            "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
-            "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
-            "type": "string"
-          },
-          "TickerParam": {
-            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
-            "type": "string"
-          }
-        },
         "properties": {
           "as_of": {
-            "$ref": "#/$defs/InstantParam"
+            "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+            "pattern": "^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+            "title": "As Of",
+            "type": "string"
           },
           "basis": {
             "default": "adjusted",
@@ -40,21 +26,30 @@
             "type": "string"
           },
           "fiscal_period": {
-            "$ref": "#/$defs/PeriodParam"
+            "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+            "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+            "title": "Fiscal Period",
+            "type": "string"
           },
           "known_as_of": {
             "anyOf": [
               {
-                "$ref": "#/$defs/InstantParam"
+                "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+                "pattern": "^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Known As Of"
           },
           "ticker": {
-            "$ref": "#/$defs/TickerParam"
+            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            "title": "Ticker",
+            "type": "string"
           }
         },
         "required": [
@@ -559,30 +554,25 @@
       },
       "description": "Explain how the adjusted consensus for `ticker` on `date` was built: which corporate actions (with primary-source URLs) were applied, how each estimate's share basis was decided (flagged by source / inferred from the split ratio / guessed from entry date), which estimates were excluded and why, and what a naive average of raw published values would have shown instead. `fiscal_period` defaults to FY1 as of `date`.",
       "inputSchema": {
-        "$defs": {
-          "PeriodParam": {
-            "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
-            "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
-            "type": "string"
-          },
-          "TickerParam": {
-            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
-            "type": "string"
-          }
-        },
         "properties": {
           "date": {
+            "description": "ISO date (YYYY-MM-DD).",
             "format": "date",
             "title": "Date",
             "type": "string"
           },
           "fiscal_period": {
-            "$ref": "#/$defs/PeriodParam",
-            "default": "FY1"
+            "default": "FY1",
+            "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+            "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+            "title": "Fiscal Period",
+            "type": "string"
           },
           "ticker": {
-            "$ref": "#/$defs/TickerParam"
+            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            "title": "Ticker",
+            "type": "string"
           }
         },
         "required": [
@@ -1135,16 +1125,12 @@
       },
       "description": "All recorded corporate actions for a security: splits, reverse splits, spin-offs and delistings, each with announcement time (known_at), record date, ex-date, share ratio (new shares per old share) and a primary-source URL. `ticker` may be a current or former ticker, or a SEC-#### id.",
       "inputSchema": {
-        "$defs": {
-          "TickerParam": {
-            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
-            "type": "string"
-          }
-        },
         "properties": {
           "ticker": {
-            "$ref": "#/$defs/TickerParam"
+            "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+            "pattern": "^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            "title": "Ticker",
+            "type": "string"
           }
         },
         "required": [

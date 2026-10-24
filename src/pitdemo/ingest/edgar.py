@@ -27,7 +27,13 @@ import httpx
 import polars as pl
 
 from pitdemo.ids import SECURITIES, SecurityMaster
-from pitdemo.ingest.upstream import CompanyFacts, EdgarSlim, SubmissionsColumns, parse_upstream
+from pitdemo.ingest.upstream import (
+    CompanyFacts,
+    EdgarSlim,
+    SubmissionsColumns,
+    SubmissionsHead,
+    parse_upstream,
+)
 from pitdemo.periods import fiscal_label_for_period_end
 from pitdemo.schemas import ActualsFrame, ReportEventsFrame
 
@@ -67,12 +73,13 @@ def fetch_companyfacts(client: httpx.Client, cik: int) -> dict[str, Any]:
 def fetch_submissions(client: httpx.Client, cik: int) -> list[dict[str, Any]]:
     """Return the filing index as a flat list of dicts, including overflow pages."""
     head = _get_json(client, SUBMISSIONS_URL.format(cik=cik))
+    index = parse_upstream(SubmissionsHead, head, f"SEC filing index for CIK {cik}")
     pages = [head["filings"]["recent"]]
-    for extra in head["filings"].get("files", []):
-        if extra.get("filingTo", "9999") < KEEP_FILINGS_SINCE:
+    for extra in index.filings.files:
+        if (extra.filingTo or "9999") < KEEP_FILINGS_SINCE:
             continue
         time.sleep(0.15)  # SEC fair-access limit is 10 req/s; stay well under it
-        pages.append(_get_json(client, SUBMISSIONS_PAGE_URL.format(name=extra["name"])))
+        pages.append(_get_json(client, SUBMISSIONS_PAGE_URL.format(name=extra.name)))
     out: list[dict[str, Any]] = []
     for n, page in enumerate(pages):
         parse_upstream(SubmissionsColumns, page, f"SEC filing index for CIK {cik} (page {n})")
@@ -99,7 +106,7 @@ def slim(cik: int, facts: dict[str, Any], filings: list[dict[str, Any]]) -> dict
         if f["form"] in KEEP_FORMS and f["filingDate"] >= KEEP_FILINGS_SINCE
     ]
     kept.sort(key=lambda r: (r["acceptance"], r["accession"]))
-    return {
+    out = {
         "cik": cik,
         "entity_name": parsed.entityName,
         "sources": [COMPANYFACTS_URL.format(cik=cik), SUBMISSIONS_URL.format(cik=cik)],
@@ -107,6 +114,10 @@ def slim(cik: int, facts: dict[str, Any], filings: list[dict[str, Any]]) -> dict
         "eps_diluted": sorted(eps_rows, key=lambda r: (r["end"], r["filed"], r["accn"])),
         "filings": kept,
     }
+    # Check the file we are about to write (accession and timestamp formats included),
+    # so a malformed filing fails the fetch instead of a later read.
+    parse_upstream(EdgarSlim, out, f"slim EDGAR data for CIK {cik}")
+    return out
 
 
 def raw_path(raw_dir: Path, cik: int) -> Path:

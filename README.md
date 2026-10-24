@@ -90,7 +90,7 @@ src/pitdemo/schemas.py (Pydantic)
 | Concern | Choice |
 |---|---|
 | Frames / store | Polars, DuckDB, Parquet |
-| Validation | Pandera (frames entering the store); Pydantic v2 at every boundary: API requests and responses, MCP tool arguments, both SDKs (requests checked before sending, responses parsed strictly), and the SEC/Yahoo payloads we ingest |
+| Validation | Pandera for frames entering the store. Pydantic v2 models in `schemas.py` are the source schema for every boundary: they validate API requests and responses and MCP tool arguments on the server; the SDKs validate with code generated from them (Pydantic in Python, Zod in TypeScript), checking requests before sending and parsing responses strictly. Separate Pydantic models validate the SEC and Yahoo payloads we ingest |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
 | Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12, 3.13, 3.14 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |

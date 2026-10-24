@@ -194,7 +194,7 @@ class InstantParam(RootModel[str]):
         str,
         Field(
             description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
-            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
         ),
     ]
 
@@ -258,10 +258,10 @@ class ConsensusQuery(BaseModel):
         str,
         Field(
             description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
-            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
         ),
     ]
-    basis: Annotated[Basis | None, Field(title="Basis")] = Basis.adjusted
+    basis: Annotated[Basis, Field(title="Basis")] = Basis.adjusted
     known_as_of: Annotated[
         InstantParam | None,
         Field(description="Ignore corporate actions announced after this instant."),
@@ -277,7 +277,7 @@ class ConsensusQuery(BaseModel):
         str,
         Field(
             description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            pattern="^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
         ),
     ]
 
@@ -337,7 +337,7 @@ class ConsensusResult(BaseModel):
         Field(description="Sample standard deviation (n-1).", title="Stdev"),
     ]
     synthetic_estimates: Annotated[
-        bool | None,
+        bool,
         Field(
             description="Analyst estimates in this demo are synthetic; actuals and corporate actions are real.",
             title="Synthetic Estimates",
@@ -388,7 +388,7 @@ class CorporateActionsQuery(BaseModel):
         str,
         Field(
             description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            pattern="^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
         ),
     ]
 
@@ -399,7 +399,7 @@ class ExplainQuery(BaseModel):
     )
     date: Annotated[date_aliased, Field(title="Date")]
     period: Annotated[
-        str | None,
+        str,
         Field(
             description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
             pattern="^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
@@ -409,7 +409,7 @@ class ExplainQuery(BaseModel):
         str,
         Field(
             description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            pattern="^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
         ),
     ]
 
@@ -437,12 +437,10 @@ class RevisionsQuery(BaseModel):
         str,
         Field(
             description="ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
-            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$",
+            pattern="^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$",
         ),
     ]
-    lookback_days: Annotated[int | None, Field(ge=1, le=365, title="Lookback Days")] = (
-        30
-    )
+    lookback_days: Annotated[int, Field(ge=1, le=365, title="Lookback Days")] = 30
     period: Annotated[
         str,
         Field(
@@ -454,7 +452,7 @@ class RevisionsQuery(BaseModel):
         str,
         Field(
             description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            pattern="^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
         ),
     ]
 
@@ -463,7 +461,7 @@ class SeriesQuery(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    basis: Annotated[Basis | None, Field(title="Basis")] = Basis.adjusted
+    basis: Annotated[Basis, Field(title="Basis")] = Basis.adjusted
     end: Annotated[date_aliased, Field(title="End")]
     known_as_of: InstantParam | None = None
     period: Annotated[
@@ -478,7 +476,7 @@ class SeriesQuery(BaseModel):
         str,
         Field(
             description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
-            pattern="^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+            pattern="^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
         ),
     ]
 

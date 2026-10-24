@@ -28,13 +28,13 @@ export type CacheInfo = z.infer<typeof CacheInfoSchema>;
 export const ConsensusPointSchema = z.object({ "as_of": z.string().date(), "count": z.number().int(), "insufficient": z.boolean(), "mean": z.union([z.number(), z.null()]), "median": z.union([z.number(), z.null()]) }).strict();
 export type ConsensusPoint = z.infer<typeof ConsensusPointSchema>;
 
-export const InstantParamSchema = z.string().regex(new RegExp("^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$")).describe("ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).");
+export const InstantParamSchema = z.string().regex(new RegExp("^\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?([Zz]|[+-][0-9]{2}:?[0-9]{2})?)?\\s*$")).describe("ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).");
 export type InstantParam = z.infer<typeof InstantParamSchema>;
 
 export const PeriodParamSchema = z.string().regex(new RegExp("^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$")).describe("Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.");
 export type PeriodParam = z.infer<typeof PeriodParamSchema>;
 
-export const TickerParamSchema = z.string().regex(new RegExp("^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$")).describe("Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).");
+export const TickerParamSchema = z.string().regex(new RegExp("^\\s*([A-Za-z][A-Za-z0-9.]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$")).describe("Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).");
 export type TickerParam = z.infer<typeof TickerParamSchema>;
 
 export const ConsensusQuerySchema = z.object({ "as_of": InstantParamSchema, "basis": z.enum(["adjusted","unadjusted"]).default("adjusted"), "known_as_of": z.union([InstantParamSchema, z.null()]).describe("Ignore corporate actions announced after this instant.").default(null), "period": PeriodParamSchema, "ticker": TickerParamSchema }).strict();

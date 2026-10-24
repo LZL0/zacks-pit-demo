@@ -221,3 +221,141 @@ def test_query_model_round_trip() -> None:
         {"ticker": "sec-0005", "period": "fy1", "as_of": "2023-02-15"}
     )
     assert (q.ticker, q.period) == ("SEC-0005", "FY1")
+
+
+# ---------------------------------------------- regressions from the PR #10 review
+
+
+def test_upstream_numbers_sent_as_strings_are_rejected() -> None:
+    """Strict upstream validation: a numeric *string* is a format change, not a value."""
+    raw = load_raw(RAW_DIR, 1045810)
+    facts = {
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "facts": {
+            "us-gaap": {"EarningsPerShareDiluted": {"units": {"USD/shares": raw["eps_diluted"]}}}
+        },
+    }
+    drifted = copy.deepcopy(facts)
+    drifted["facts"]["us-gaap"]["EarningsPerShareDiluted"]["units"]["USD/shares"][0]["val"] = "1.5"
+    with pytest.raises(UpstreamFormatError, match="val"):
+        parse_upstream(CompanyFacts, drifted, "SEC companyfacts")
+
+
+def test_instants_are_normalized_like_the_other_request_types(http: TestClient) -> None:
+    q = ConsensusQuery.model_validate(
+        {"ticker": "NVDA", "period": "FY2025", "as_of": " 2024-05-31t12:00z "}
+    )
+    assert q.as_of == "2024-05-31T12:00Z"
+    r = http.get(
+        "/consensus", params={"ticker": "NVDA", "period": "FY2025", "as_of": " 2024-05-31t23:00z"}
+    )
+    assert r.status_code == 200
+
+
+def test_malformed_security_id_is_a_validation_error_not_a_404(http: TestClient) -> None:
+    r = http.get(
+        "/consensus", params={"ticker": "SEC-ABC", "period": "FY2025", "as_of": "2024-05-31"}
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "InvalidRequest"
+    ConsensusQuery.model_validate({"ticker": "BRK.B", "period": "FY2025", "as_of": "2024-05-31"})
+
+
+@pytest.mark.parametrize("bad", ["2024-02-30", "2024-05-31T25:00", "2023-02-29"])
+def test_impossible_dates_are_rejected(http: TestClient, bad: str) -> None:
+    with pytest.raises(pydantic.ValidationError, match="not a real calendar date"):
+        ConsensusQuery.model_validate({"ticker": "NVDA", "period": "FY2025", "as_of": bad})
+    r = http.get("/consensus", params={"ticker": "NVDA", "period": "FY2025", "as_of": bad})
+    assert r.status_code == 400
+    assert "not a real calendar date" in r.json()["message"]
+
+
+def test_yahoo_200_without_result_is_a_format_error_not_missing_data() -> None:
+    import datetime as dt
+
+    def client(status: int, body: Any) -> httpx.Client:
+        response = (
+            httpx.Response(status, json=body)
+            if not isinstance(body, str)
+            else httpx.Response(status, text=body)
+        )
+        return httpx.Client(transport=httpx.MockTransport(lambda _: response))
+
+    span = (dt.date(2024, 6, 1), dt.date(2024, 6, 30))
+    with pytest.raises(UpstreamFormatError, match="neither a result nor an error"):
+        fetch_chart(
+            client(200, {"chart": {"result": None, "error": None}}), "NVDA", "SEC-0001", *span
+        )
+    with pytest.raises(UpstreamFormatError, match="chart"):
+        fetch_chart(client(200, {"unexpected": True}), "NVDA", "SEC-0001", *span)
+    declared = fetch_chart(
+        client(
+            404,
+            {"chart": {"result": None, "error": {"code": "Not Found", "description": "delisted"}}},
+        ),
+        "SIVB",
+        "SEC-0005",
+        *span,
+    )
+    assert declared.error == "delisted"
+    gateway = fetch_chart(client(502, "<html>Bad gateway</html>"), "NVDA", "SEC-0001", *span)
+    assert gateway.error == "HTTP 502"
+
+
+def test_mcp_argument_errors_are_typed_and_plain(service: Service) -> None:
+    async def go() -> Any:
+        async with Client(create_server(service)) as c:
+            return await c.call_tool(
+                "get_consensus",
+                {"ticker": "SEC-ABC", "fiscal_period": "next year", "as_of": "2024-02-30"},
+            )
+
+    r = asyncio.run(go())
+    assert r.is_error
+    payload = json.loads(r.content[0].text.split(": ", 1)[1])
+    assert payload["error"] == "InvalidRequest"
+    assert "fiscal_period: 'next year' is not a fiscal-year label" in payload["message"]
+    assert "not a real calendar date" in payload["message"]
+    assert "^" not in payload["message"]
+
+
+def test_malformed_filings_fail_before_anything_is_written() -> None:
+    raw = load_raw(RAW_DIR, 1045810)
+    facts = {
+        "cik": 1045810,
+        "entityName": "NVIDIA CORP",
+        "facts": {
+            "us-gaap": {"EarningsPerShareDiluted": {"units": {"USD/shares": raw["eps_diluted"]}}}
+        },
+    }
+    bad_filing = {
+        "accessionNumber": "not-an-accession",
+        "filingDate": "2024-05-22",
+        "acceptanceDateTime": "2024-05-23T00:21:29.000Z",
+        "form": "8-K",
+        "items": "2.02",
+    }
+    with pytest.raises(UpstreamFormatError, match="accession"):
+        slim(1045810, facts, [bad_filing])
+
+
+def test_filing_index_header_is_validated() -> None:
+    from pitdemo.ingest.edgar import fetch_submissions
+
+    client = httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"cik": "1045810"}))
+    )
+    with pytest.raises(UpstreamFormatError, match=r"filing index for CIK 1045810.*filings"):
+        fetch_submissions(client, 1045810)
+
+
+def test_sdk_defaulted_fields_are_not_nullable() -> None:
+    from pitdemo_sdk.models import ExplainQuery, RevisionsQuery
+
+    with pytest.raises(pydantic.ValidationError):
+        RevisionsQuery.model_validate(
+            {"ticker": "NVDA", "period": "FY1", "as_of": "2024-06-30", "lookback_days": None}
+        )
+    with pytest.raises(pydantic.ValidationError):
+        ExplainQuery.model_validate({"ticker": "NVDA", "date": "2024-06-14", "period": None})

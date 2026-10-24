@@ -51,9 +51,10 @@ Everything else runs offline from the committed `data/raw/` and `data/synthetic/
   Pandera models in `schemas.py`. Everything crossing the API boundary is a Pydantic
   model in `schemas.py`: responses, and request query models built from shared
   constrained types (`TickerParam`, `PeriodParam`, `InstantParam`) that the HTTP API,
-  the MCP tool signatures and both SDKs all use. Third-party payloads (SEC, Yahoo) are
-  validated by the models in `ingest/upstream.py` before anything reads them. The
-  Python SDK parses responses with `strict=True`; keep it that way.
+  the MCP tools and both SDKs all use. Third-party payloads (SEC, Yahoo) are validated,
+  strictly, by the models in `ingest/upstream.py` before ingestion uses any field from
+  them, and the slim EDGAR file is validated again before it is written. The Python
+  SDK parses responses with `strict=True`; keep it that way.
 
 ## Generated files: regenerate, never hand-edit
 
