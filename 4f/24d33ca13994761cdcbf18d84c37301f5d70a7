@@ -1,0 +1,50 @@
+src/pitdemo/sdkgen.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 100-102
+src/pitdemo/api/http.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 33,37,105
+README.md
+  s_616c21e0e702ed::t_680435293578bf 93
+src/pitdemo/schemas.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 381-400,404-423,428,433,443-444
+src/pitdemo/ingest/edgar.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 30-36,76,78-79,82,109,117-120
+openapi.json
+  s_616c21e0e702ed::t_cd80d6e17cf78b 673,784
+sdk/mcp-tools.json
+  s_616c21e0e702ed::t_cd80d6e17cf78b 14-17,29-32,37-39,45-46,49-52,559,565-569,572-575,1130-1133
+sdk/schema.json
+  s_616c21e0e702ed::t_cd80d6e17cf78b 752,940
+src/pitdemo/ingest/upstream.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 14,82-87,111-121,178-193,195-200,202
+AGENTS.md
+  s_616c21e0e702ed::t_680435293578bf 54-57
+tests/test_boundaries.py
+  s_616c21e0e702ed::t_d1a136d86f3895 224-361
+sdk/ts/src/schemas.ts
+  s_616c21e0e702ed::t_cd80d6e17cf78b 31,37
+src/pitdemo/service.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 10,12-14,28,80-117
+  s_616c21e0e702ed::t_d2faceab25d0d6 118-119
+src/pitdemo/ingest/prices.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 18,23,54-71
+src/pitdemo/api/mcp_server.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 15,20,23-28,31,34-35,37,41-58,134-136,138,141-150,152-157,172,175-180,192,194-198
+sdk/python/pitdemo_sdk/models.py
+  s_616c21e0e702ed::t_cd80d6e17cf78b 197,261,264,280,340,391,402,412,440,443,455,464,479
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f24d33ca13994761cdcbf18d84c37301f5d70a7",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
