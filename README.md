@@ -81,7 +81,7 @@ synthetic estimates (seed 42) ──────────┘                 
 | Validation | Pandera (frames entering the store), Pydantic v2 (everything at the boundary) |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
-| Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |
+| Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12, 3.13, 3.14 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |
 
 ## Commands
 

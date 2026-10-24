@@ -21,8 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Oldest version pyproject.toml allows, and the newest release.
-        python: ["3.12", "3.15"]
+        # Every version pyproject.toml claims (>=3.12), up to the newest release.
+        python: ["3.12", "3.13", "3.14", "3.15"]
     env:
       PRIMARY: ${{ matrix.python == '3.12' }}
     steps:

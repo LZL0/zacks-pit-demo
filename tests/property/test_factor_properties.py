@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from hypothesis import HealthCheck, given, settings
+from hypothesis import HealthCheck, example, given, settings
 from hypothesis import strategies as st
 
 from pitdemo.schemas import UnadjustedEPS
@@ -91,6 +91,7 @@ estimate_rows = st.lists(
 
 @settings(max_examples=60, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(estimate_rows, st.integers(min_value=0, max_value=220))
+@example(rows=[("A", 1.9375, 0), ("B", 1.9375, 0), ("C", 1.9375, 0)], q=0)  # float rounding
 def test_count_never_exceeds_active(rows: list[tuple[str, float | None, int]], q: int) -> None:
     start = dt.datetime(2024, 1, 1, 15)
     data = [
@@ -105,5 +106,11 @@ def test_count_never_exceeds_active(rows: list[tuple[str, float | None, int]], q
     assert r.count + r.excluded_total == active.height
     assert len({c.broker_id for c in r.contributors}) == r.count  # one per broker
     if not r.insufficient:
-        assert r.low <= r.median <= r.high  # type: ignore[operator]
-        assert r.low <= r.mean <= r.high  # type: ignore[operator]
+        assert r.low is not None
+        assert r.high is not None
+        assert r.median is not None
+        assert r.mean is not None
+        # Float rounding: the mean of three 1.94s is 1.9400000000000002.
+        eps = 1e-9 * max(1.0, abs(r.high))
+        assert r.low - eps <= r.median <= r.high + eps
+        assert r.low - eps <= r.mean <= r.high + eps
