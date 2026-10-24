@@ -5,18 +5,20 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from pitdemo import API_VERSION
 from pitdemo.schemas import (
     FIXED_PERIOD_PATTERN,
     INSTANT_PATTERN,
     PERIOD_PATTERN,
     TICKER_PATTERN,
     AdjustmentExplanation,
+    CacheInfo,
     ConsensusQuery,
     ConsensusResult,
     ConsensusSeries,
@@ -24,6 +26,7 @@ from pitdemo.schemas import (
     CorporateActionsQuery,
     ErrorResponse,
     ExplainQuery,
+    Health,
     RevisionSignal,
     RevisionsQuery,
     SeriesQuery,
@@ -44,10 +47,14 @@ EXPECTED = {
 }
 
 STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}
+# Documented error responses. Too few estimates is not an HTTP error: it is a 200 with
+# `insufficient: true` and the exclusions that caused it.
 ERRORS: dict[int | str, dict[str, object]] = {
-    400: {"model": ErrorResponse},
-    404: {"model": ErrorResponse},
-    422: {"model": ErrorResponse},
+    400: {"model": ErrorResponse, "description": "InvalidRequest: a parameter is malformed"},
+    404: {
+        "model": ErrorResponse,
+        "description": "NotFound: unknown ticker, or ticker not in use on the requested date",
+    },
 }
 
 
@@ -68,16 +75,35 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
 
     app = FastAPI(
         title="Point-in-time consensus demo",
-        version="0.1.0",
+        version=API_VERSION,
         description=(
             "Point-in-time EPS consensus with per-estimate split adjustment. "
             "Analyst estimates are SYNTHETIC; actuals (SEC EDGAR) and corporate actions "
             "(primary sources) are real."
         ),
         lifespan=lifespan,
+        servers=[{"url": "http://127.0.0.1:8000", "description": "Local (`uv run demo serve`)"}],
     )
     if service is not None:
         app.state.service = service
+
+    generate_openapi = app.openapi
+
+    def openapi() -> dict[str, Any]:
+        """FastAPI documents a 422 for every endpoint with parameters, but validation
+        errors here are typed 400 ``InvalidRequest`` responses (see the handler below),
+        so the default 422 and its schemas are removed to keep the spec truthful."""
+        if app.openapi_schema is None:
+            spec = generate_openapi()
+            for path in spec.get("paths", {}).values():
+                for operation in path.values():
+                    operation.get("responses", {}).pop("422", None)
+            for name in ("HTTPValidationError", "ValidationError"):
+                spec.get("components", {}).get("schemas", {}).pop(name, None)
+            app.openapi_schema = spec
+        return app.openapi_schema
+
+    app.openapi = openapi  # type: ignore[method-assign]
 
     def svc(request: Request) -> Service:
         s = request.app.state.service
@@ -139,10 +165,16 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
         ]
         return Universe(date=q.date, securities=members)
 
-    @app.get("/healthz")
-    def healthz(request: Request) -> dict[str, object]:
+    @app.get("/healthz", response_model=Health)
+    def healthz(request: Request) -> Health:
         s = svc(request)
-        return {"ok": True, "cache": {"size": len(s.cache), **s.cache.stats.__dict__}}
+        return Health(
+            ok=True,
+            api_version=API_VERSION,
+            cache=CacheInfo(
+                size=len(s.cache), hits=s.cache.stats.hits, misses=s.cache.stats.misses
+            ),
+        )
 
     @app.get("/", include_in_schema=False)
     def root() -> dict[str, str]:

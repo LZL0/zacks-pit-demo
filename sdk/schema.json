@@ -49,6 +49,30 @@
       "title": "AdjustmentExplanation",
       "type": "object"
     },
+    "CacheInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "hits": {
+          "title": "Hits",
+          "type": "integer"
+        },
+        "misses": {
+          "title": "Misses",
+          "type": "integer"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "size",
+        "hits",
+        "misses"
+      ],
+      "title": "CacheInfo",
+      "type": "object"
+    },
     "ConsensusPoint": {
       "additionalProperties": false,
       "properties": {
@@ -698,6 +722,30 @@
       "description": "Fixed fiscal-year label, e.g. FY2025.",
       "pattern": "^\\s*[Ff][Yy][0-9]{4}\\s*$",
       "type": "string"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "description": "Dated API version, e.g. 2026-10.",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "cache": {
+          "$ref": "#/$defs/CacheInfo"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "api_version",
+        "cache"
+      ],
+      "title": "Health",
+      "type": "object"
     },
     "InstantParam": {
       "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",

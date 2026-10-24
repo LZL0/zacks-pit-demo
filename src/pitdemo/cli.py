@@ -96,7 +96,7 @@ def chart(
 
 @app.command()
 def sdk() -> None:
-    """Regenerate sdk/schema.json, the Python SDK models and the TypeScript Zod schemas."""
+    """Regenerate openapi.json, sdk/schema.json, both SDKs' models and sdk/mcp-tools.json."""
     import shutil
     import subprocess
 

@@ -59,7 +59,7 @@ Everything else runs offline from the committed `data/raw/` and `data/synthetic/
 
 | File(s) | Regenerate with |
 |---|---|
-| `sdk/schema.json`, `sdk/python/pitdemo_sdk/models.py`, `sdk/ts/src/schemas.ts` | `uv run demo sdk` (CI fails on drift) |
+| `openapi.json`, `sdk/schema.json`, `sdk/python/pitdemo_sdk/models.py`, `sdk/ts/src/schemas.ts`, `sdk/mcp-tools.json` | `uv run demo sdk` (CI fails on drift) |
 | `data/synthetic/estimates.parquet` | `uv run demo synth` (a test fails if stale) |
 | `docs/nvda_consensus.png` | `uv run demo chart` |
 | `docs/demo.cast`, `docs/demo.mp4`, `docs/demo.gif` | `scripts/record/capture.py` then `render.py` (runs real Claude Code) |
@@ -88,6 +88,9 @@ methodology and agent skill, and its failure message tells you which sentence to
 - Don't commit price data (`data/raw/prices/`, third-party), the DuckDB file, or
   `sdk/ts/node_modules` / `dist`.
 - The `mypy` config targets Python 3.12; CI tests 3.12 through 3.15.
+- The API version is the dated `API_VERSION` in `src/pitdemo/__init__.py` (it becomes
+  `info.version` in `openapi.json`). A breaking change to a request or response model
+  means a new dated version, not an edit in place.
 
 ## Workflow
 

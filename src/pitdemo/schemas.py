@@ -342,6 +342,18 @@ class ErrorResponse(Model):
     hint: str | None = None
 
 
+class CacheInfo(Model):
+    size: int
+    hits: int
+    misses: int
+
+
+class Health(Model):
+    ok: bool
+    api_version: str = Field(description="Dated API version, e.g. 2026-10.")
+    cache: CacheInfo
+
+
 class UniverseMember(Model):
     security_id: str
     ticker: str = Field(description="Ticker in use on the requested date.")
@@ -457,6 +469,7 @@ API_MODELS: tuple[type[BaseModel], ...] = (
     AdjustmentExplanation,
     RevisionSignal,
     Universe,
+    Health,
     ErrorResponse,
     ConsensusQuery,
     SeriesQuery,

@@ -1,0 +1,1338 @@
+{
+  "components": {
+    "schemas": {
+      "AdjustmentExplanation": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "consensus_adjusted": {
+            "$ref": "#/components/schemas/ConsensusResult"
+          },
+          "fiscal_period": {
+            "title": "Fiscal Period",
+            "type": "string"
+          },
+          "naive_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Average of raw published values with no basis handling, for contrast.",
+            "title": "Naive Mean"
+          },
+          "narrative": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Narrative",
+            "type": "array"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityRef"
+          }
+        },
+        "required": [
+          "security",
+          "as_of",
+          "fiscal_period",
+          "consensus_adjusted",
+          "naive_mean",
+          "narrative"
+        ],
+        "title": "AdjustmentExplanation",
+        "type": "object"
+      },
+      "CacheInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "misses": {
+            "title": "Misses",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "size",
+          "hits",
+          "misses"
+        ],
+        "title": "CacheInfo",
+        "type": "object"
+      },
+      "ConsensusPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "insufficient": {
+            "title": "Insufficient",
+            "type": "boolean"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          }
+        },
+        "required": [
+          "as_of",
+          "mean",
+          "median",
+          "count",
+          "insufficient"
+        ],
+        "title": "ConsensusPoint",
+        "type": "object"
+      },
+      "ConsensusResult": {
+        "additionalProperties": false,
+        "description": "Point-in-time EPS consensus for one security and fiscal period.",
+        "properties": {
+          "as_of": {
+            "description": "Estimates known at this instant (UTC).",
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "adjusted",
+              "unadjusted"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "contributors": {
+            "items": {
+              "$ref": "#/components/schemas/Contributor"
+            },
+            "title": "Contributors",
+            "type": "array"
+          },
+          "contributors_total": {
+            "title": "Contributors Total",
+            "type": "integer"
+          },
+          "corporate_actions_applied": {
+            "items": {
+              "$ref": "#/components/schemas/CorporateAction"
+            },
+            "title": "Corporate Actions Applied",
+            "type": "array"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "excluded": {
+            "items": {
+              "$ref": "#/components/schemas/Exclusion"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "excluded_total": {
+            "title": "Excluded Total",
+            "type": "integer"
+          },
+          "fiscal_period": {
+            "description": "Fixed fiscal-year label, e.g. FY2025.",
+            "title": "Fiscal Period",
+            "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "insufficient": {
+            "description": "True when fewer than 3 estimates qualify.",
+            "title": "Insufficient",
+            "type": "boolean"
+          },
+          "known_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Corporate-action knowledge cutoff. None means everything known today.",
+            "title": "Known As Of"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "metric": {
+            "const": "EPS",
+            "default": "EPS",
+            "title": "Metric",
+            "type": "string"
+          },
+          "requested_period": {
+            "description": "Label as requested (may be FY1/FY2).",
+            "title": "Requested Period",
+            "type": "string"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityRef"
+          },
+          "stdev": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sample standard deviation (n-1).",
+            "title": "Stdev"
+          },
+          "synthetic_estimates": {
+            "default": true,
+            "description": "Analyst estimates in this demo are synthetic; actuals and corporate actions are real.",
+            "title": "Synthetic Estimates",
+            "type": "boolean"
+          },
+          "target_basis": {
+            "description": "Plain-language description of the share basis.",
+            "title": "Target Basis",
+            "type": "string"
+          },
+          "target_basis_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share basis of the returned values. None means the latest known basis.",
+            "title": "Target Basis Date"
+          },
+          "versions": {
+            "$ref": "#/components/schemas/Versions"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "security",
+          "fiscal_period",
+          "requested_period",
+          "as_of",
+          "known_as_of",
+          "basis",
+          "target_basis_date",
+          "target_basis",
+          "mean",
+          "median",
+          "high",
+          "low",
+          "stdev",
+          "count",
+          "insufficient",
+          "contributors",
+          "contributors_total",
+          "excluded",
+          "excluded_total",
+          "corporate_actions_applied",
+          "warnings",
+          "method",
+          "versions"
+        ],
+        "title": "ConsensusResult",
+        "type": "object"
+      },
+      "ConsensusSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "adjusted",
+              "unadjusted"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "fiscal_period": {
+            "title": "Fiscal Period",
+            "type": "string"
+          },
+          "known_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Known As Of"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ConsensusPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityRef"
+          }
+        },
+        "required": [
+          "security",
+          "fiscal_period",
+          "basis",
+          "known_as_of",
+          "points"
+        ],
+        "title": "ConsensusSeries",
+        "type": "object"
+      },
+      "Contributor": {
+        "additionalProperties": false,
+        "description": "One estimate that went into the consensus, with its basis decision.",
+        "properties": {
+          "basis_date": {
+            "description": "Date whose share count the raw value is on.",
+            "format": "date",
+            "title": "Basis Date",
+            "type": "string"
+          },
+          "basis_inferred": {
+            "description": "True when the basis is a guess: a date fallback, or inferred from a prior estimate whose own basis was a guess.",
+            "title": "Basis Inferred",
+            "type": "boolean"
+          },
+          "basis_source": {
+            "description": "flagged: source supplied the basis; ratio_inferred: matched the broker's prior estimate divided by the split ratio; date_fallback: guessed from entry date near a split; entry_date: no split nearby, so the entry date is the basis.",
+            "enum": [
+              "flagged",
+              "ratio_inferred",
+              "date_fallback",
+              "entry_date"
+            ],
+            "title": "Basis Source",
+            "type": "string"
+          },
+          "broker_id": {
+            "title": "Broker Id",
+            "type": "string"
+          },
+          "entered_at": {
+            "format": "date-time",
+            "title": "Entered At",
+            "type": "string"
+          },
+          "estimate_id": {
+            "title": "Estimate Id",
+            "type": "string"
+          },
+          "factor": {
+            "description": "Cumulative share factor from basis_date to the target.",
+            "title": "Factor",
+            "type": "number"
+          },
+          "raw_value": {
+            "description": "Value as published, on its own share basis.",
+            "title": "Raw Value",
+            "type": "number"
+          },
+          "value": {
+            "description": "raw_value / factor: the value on the target basis.",
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "estimate_id",
+          "broker_id",
+          "entered_at",
+          "raw_value",
+          "basis_date",
+          "basis_source",
+          "basis_inferred",
+          "factor",
+          "value"
+        ],
+        "title": "Contributor",
+        "type": "object"
+      },
+      "CorporateAction": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "enum": [
+              "SPLIT",
+              "REVERSE_SPLIT",
+              "SPINOFF",
+              "DELISTING"
+            ],
+            "title": "Action Type",
+            "type": "string"
+          },
+          "ex_date": {
+            "description": "First trading day on the new basis.",
+            "format": "date",
+            "title": "Ex Date",
+            "type": "string"
+          },
+          "known_at": {
+            "description": "When the action became public (UTC).",
+            "format": "date-time",
+            "title": "Known At",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "ratio": {
+            "description": "New shares per old share (10.0 for 10-for-1, 0.125 for 1-for-8). 1.0 when the share count does not change.",
+            "title": "Ratio",
+            "type": "number"
+          },
+          "record_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Date"
+          },
+          "security_id": {
+            "title": "Security Id",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Primary source (SEC filing or regulator release).",
+            "title": "Source Url",
+            "type": "string"
+          },
+          "terms": {
+            "title": "Terms",
+            "type": "string"
+          },
+          "ticker": {
+            "description": "Ticker at the time of the action.",
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "security_id",
+          "ticker",
+          "action_type",
+          "known_at",
+          "record_date",
+          "ex_date",
+          "ratio",
+          "terms",
+          "source_url"
+        ],
+        "title": "CorporateAction",
+        "type": "object"
+      },
+      "CorporateActionList": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/CorporateAction"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityRef"
+          }
+        },
+        "required": [
+          "security",
+          "actions"
+        ],
+        "title": "CorporateActionList",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "enum": [
+              "NotFound",
+              "InsufficientEstimates",
+              "InvalidRequest"
+            ],
+            "title": "Error",
+            "type": "string"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "Exclusion": {
+        "additionalProperties": false,
+        "properties": {
+          "broker_id": {
+            "title": "Broker Id",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "entered_at": {
+            "format": "date-time",
+            "title": "Entered At",
+            "type": "string"
+          },
+          "estimate_id": {
+            "title": "Estimate Id",
+            "type": "string"
+          },
+          "raw_value": {
+            "title": "Raw Value",
+            "type": "number"
+          },
+          "reason": {
+            "enum": [
+              "stale",
+              "not_reconfirmed_after_report",
+              "pre_spinoff_perimeter",
+              "outlier"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "estimate_id",
+          "broker_id",
+          "entered_at",
+          "raw_value",
+          "reason",
+          "detail"
+        ],
+        "title": "Exclusion",
+        "type": "object"
+      },
+      "FixedPeriodParam": {
+        "description": "Fixed fiscal-year label, e.g. FY2025.",
+        "pattern": "^\\s*[Ff][Yy][0-9]{4}\\s*$",
+        "type": "string"
+      },
+      "Health": {
+        "additionalProperties": false,
+        "properties": {
+          "api_version": {
+            "description": "Dated API version, e.g. 2026-10.",
+            "title": "Api Version",
+            "type": "string"
+          },
+          "cache": {
+            "$ref": "#/components/schemas/CacheInfo"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "api_version",
+          "cache"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "InstantParam": {
+        "description": "ISO date (read as the end of that day, UTC) or ISO datetime (UTC unless an offset is given).",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$",
+        "type": "string"
+      },
+      "PeriodParam": {
+        "description": "Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+        "pattern": "^\\s*[Ff][Yy]([0-9]{4}|[12])\\s*$",
+        "type": "string"
+      },
+      "RevisionSignal": {
+        "additionalProperties": false,
+        "description": "Per-broker revisions over a lookback window, comparing like with like.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "brokers_compared": {
+            "title": "Brokers Compared",
+            "type": "integer"
+          },
+          "down": {
+            "title": "Down",
+            "type": "integer"
+          },
+          "fiscal_period": {
+            "title": "Fiscal Period",
+            "type": "string"
+          },
+          "lookback_days": {
+            "title": "Lookback Days",
+            "type": "integer"
+          },
+          "mean_pct_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Pct Change"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityRef"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "up": {
+            "title": "Up",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "security",
+          "fiscal_period",
+          "as_of",
+          "lookback_days",
+          "brokers_compared",
+          "up",
+          "down",
+          "unchanged",
+          "mean_pct_change"
+        ],
+        "title": "RevisionSignal",
+        "type": "object"
+      },
+      "SecurityRef": {
+        "additionalProperties": false,
+        "properties": {
+          "cik": {
+            "description": "SEC Central Index Key, zero-padded to 10 digits.",
+            "title": "Cik",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "security_id": {
+            "description": "Permanent identifier, e.g. SEC-0001. Never reused.",
+            "title": "Security Id",
+            "type": "string"
+          },
+          "ticker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ticker in use on the as-of date, if any.",
+            "title": "Ticker"
+          }
+        },
+        "required": [
+          "security_id",
+          "ticker",
+          "name",
+          "cik"
+        ],
+        "title": "SecurityRef",
+        "type": "object"
+      },
+      "TickerParam": {
+        "description": "Ticker as of the query date (e.g. NVDA, SIVB), or a permanent security id (e.g. SEC-0005).",
+        "pattern": "^\\s*([A-Za-z][A-Za-z0-9.\\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\\s*$",
+        "type": "string"
+      },
+      "Universe": {
+        "additionalProperties": false,
+        "description": "Securities listed on a date. Delisted names drop out; their history stays.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "securities": {
+            "items": {
+              "$ref": "#/components/schemas/UniverseMember"
+            },
+            "title": "Securities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date",
+          "securities"
+        ],
+        "title": "Universe",
+        "type": "object"
+      },
+      "UniverseMember": {
+        "additionalProperties": false,
+        "properties": {
+          "security_id": {
+            "title": "Security Id",
+            "type": "string"
+          },
+          "ticker": {
+            "description": "Ticker in use on the requested date.",
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "security_id",
+          "ticker"
+        ],
+        "title": "UniverseMember",
+        "type": "object"
+      },
+      "Versions": {
+        "additionalProperties": false,
+        "properties": {
+          "estimates": {
+            "title": "Estimates",
+            "type": "integer"
+          },
+          "factors": {
+            "title": "Factors",
+            "type": "integer"
+          },
+          "fn": {
+            "title": "Fn",
+            "type": "string"
+          },
+          "reports": {
+            "title": "Reports",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "estimates",
+          "factors",
+          "reports",
+          "fn"
+        ],
+        "title": "Versions",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Point-in-time EPS consensus with per-estimate split adjustment. Analyst estimates are SYNTHETIC; actuals (SEC EDGAR) and corporate actions (primary sources) are real.",
+    "title": "Point-in-time consensus demo",
+    "version": "2026-10"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/consensus": {
+      "get": {
+        "operationId": "get_consensus_consensus_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TickerParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PeriodParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/InstantParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "basis",
+            "required": false,
+            "schema": {
+              "default": "adjusted",
+              "enum": [
+                "adjusted",
+                "unadjusted"
+              ],
+              "title": "Basis",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Ignore corporate actions announced after this instant.",
+            "in": "query",
+            "name": "known_as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/InstantParam"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ignore corporate actions announced after this instant.",
+              "title": "Known As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsensusResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Consensus"
+      }
+    },
+    "/consensus/series": {
+      "get": {
+        "operationId": "get_series_consensus_series_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TickerParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FixedPeriodParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "basis",
+            "required": false,
+            "schema": {
+              "default": "adjusted",
+              "enum": [
+                "adjusted",
+                "unadjusted"
+              ],
+              "title": "Basis",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "known_as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/InstantParam"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Known As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsensusSeries"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Series"
+      }
+    },
+    "/corporate-actions": {
+      "get": {
+        "operationId": "get_corporate_actions_corporate_actions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TickerParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorporateActionList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Corporate Actions"
+      }
+    },
+    "/explain": {
+      "get": {
+        "operationId": "get_explain_explain_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TickerParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PeriodParam",
+              "default": "FY1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustmentExplanation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Explain"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Healthz"
+      }
+    },
+    "/revisions": {
+      "get": {
+        "operationId": "get_revisions_revisions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TickerParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PeriodParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/InstantParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lookback_days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Lookback Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionSignal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Revisions"
+      }
+    },
+    "/universe": {
+      "get": {
+        "description": "Securities listed on `date` (delisted names drop out; their history stays).",
+        "operationId": "get_universe_universe_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Universe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "InvalidRequest: a parameter is malformed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "NotFound: unknown ticker, or ticker not in use on the requested date"
+          }
+        },
+        "summary": "Get Universe"
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local (`uv run demo serve`)",
+      "url": "http://127.0.0.1:8000"
+    }
+  ]
+}

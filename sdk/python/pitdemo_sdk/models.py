@@ -19,6 +19,15 @@ class PitdemoApi(RootModel[Any]):
     ]
 
 
+class CacheInfo(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    hits: Annotated[int, Field(title="Hits")]
+    misses: Annotated[int, Field(title="Misses")]
+    size: Annotated[int, Field(title="Size")]
+
+
 class ConsensusPoint(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -167,6 +176,17 @@ class Exclusion(BaseModel):
     estimate_id: Annotated[str, Field(title="Estimate Id")]
     raw_value: Annotated[float, Field(title="Raw Value")]
     reason: Annotated[Reason, Field(title="Reason")]
+
+
+class Health(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    api_version: Annotated[
+        str, Field(description="Dated API version, e.g. 2026-10.", title="Api Version")
+    ]
+    cache: CacheInfo
+    ok: Annotated[bool, Field(title="Ok")]
 
 
 class InstantParam(RootModel[str]):

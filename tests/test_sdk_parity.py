@@ -6,6 +6,7 @@ Fix a failure with ``uv run demo sdk``.
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -75,3 +76,51 @@ def test_every_api_model_is_in_the_schema() -> None:
     ts = (TS / "src" / "schemas.ts").read_text()
     for name in defs:
         assert f"export const {name}Schema" in ts, name
+
+
+# ------------------------------------------------------------ OpenAPI / MCP
+
+
+def test_openapi_json_matches_the_code() -> None:
+    from pitdemo.sdkgen import OPENAPI_PATH, openapi_text
+
+    assert OPENAPI_PATH.read_text() == openapi_text(), "openapi.json drifted: run `demo sdk`"
+
+
+def test_openapi_is_a_valid_dated_spec() -> None:
+    import json
+
+    from openapi_spec_validator import validate
+
+    from pitdemo import API_VERSION
+    from pitdemo.sdkgen import OPENAPI_PATH
+
+    spec = json.loads(OPENAPI_PATH.read_text())
+    validate(spec)
+    assert spec["info"]["version"] == API_VERSION
+    assert re.fullmatch(r"\d{4}-\d{2}", API_VERSION)
+    # Every documented status code is one the API actually returns.
+    for path in spec["paths"].values():
+        assert set(path["get"]["responses"]) <= {"200", "400", "404"}
+
+
+def test_openapi_and_sdk_share_one_schema() -> None:
+    """Every OpenAPI component is a model in sdk/schema.json, i.e. one source of truth."""
+    import json
+
+    from pitdemo.sdkgen import OPENAPI_PATH
+
+    components = set(json.loads(OPENAPI_PATH.read_text())["components"]["schemas"])
+    defs = set(json.loads(SCHEMA_PATH.read_text())["$defs"])
+    assert components <= defs, components - defs
+
+
+def test_mcp_tool_definitions_match_the_code() -> None:
+    import json
+
+    from pitdemo.sdkgen import MCP_TOOLS_PATH, mcp_tools_text
+
+    assert MCP_TOOLS_PATH.read_text() == mcp_tools_text(), "MCP tools drifted: run `demo sdk`"
+    tools = {t["name"]: t for t in json.loads(MCP_TOOLS_PATH.read_text())["tools"]}
+    assert sorted(tools) == ["explain_adjustment", "get_consensus", "list_corporate_actions"]
+    assert tools["get_consensus"]["outputSchema"]["title"] == "ConsensusResult"

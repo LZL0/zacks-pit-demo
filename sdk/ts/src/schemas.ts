@@ -22,6 +22,9 @@ export type ConsensusResult = z.infer<typeof ConsensusResultSchema>;
 export const AdjustmentExplanationSchema = z.object({ "as_of": z.string().datetime({ offset: true }), "consensus_adjusted": ConsensusResultSchema, "fiscal_period": z.string(), "naive_mean": z.union([z.number(), z.null()]).describe("Average of raw published values with no basis handling, for contrast."), "narrative": z.array(z.string()), "security": SecurityRefSchema }).strict();
 export type AdjustmentExplanation = z.infer<typeof AdjustmentExplanationSchema>;
 
+export const CacheInfoSchema = z.object({ "hits": z.number().int(), "misses": z.number().int(), "size": z.number().int() }).strict();
+export type CacheInfo = z.infer<typeof CacheInfoSchema>;
+
 export const ConsensusPointSchema = z.object({ "as_of": z.string().date(), "count": z.number().int(), "insufficient": z.boolean(), "mean": z.union([z.number(), z.null()]), "median": z.union([z.number(), z.null()]) }).strict();
 export type ConsensusPoint = z.infer<typeof ConsensusPointSchema>;
 
@@ -54,6 +57,9 @@ export type ExplainQuery = z.infer<typeof ExplainQuerySchema>;
 
 export const FixedPeriodParamSchema = z.string().regex(new RegExp("^\\s*[Ff][Yy][0-9]{4}\\s*$")).describe("Fixed fiscal-year label, e.g. FY2025.");
 export type FixedPeriodParam = z.infer<typeof FixedPeriodParamSchema>;
+
+export const HealthSchema = z.object({ "api_version": z.string().describe("Dated API version, e.g. 2026-10."), "cache": CacheInfoSchema, "ok": z.boolean() }).strict();
+export type Health = z.infer<typeof HealthSchema>;
 
 export const RevisionSignalSchema = z.object({ "as_of": z.string().datetime({ offset: true }), "brokers_compared": z.number().int(), "down": z.number().int(), "fiscal_period": z.string(), "lookback_days": z.number().int(), "mean_pct_change": z.union([z.number(), z.null()]), "security": SecurityRefSchema, "unchanged": z.number().int(), "up": z.number().int() }).strict().describe("Per-broker revisions over a lookback window, comparing like with like.");
 export type RevisionSignal = z.infer<typeof RevisionSignalSchema>;

@@ -71,9 +71,21 @@ synthetic estimates (seed 42) ──────────┘                 
                                      factors ─► per-estimate basis ─► consensus ─► LRU cache
                                                                                     │
                                               FastAPI ◄── service layer ──► MCP (stdio / streamable HTTP)
-                                                 │
-                         sdk/schema.json ─► Python SDK (Pydantic) + TypeScript SDK (Zod); CI fails on drift
 ```
+
+### One schema, four outputs
+
+Every request and response is a Pydantic model in `src/pitdemo/schemas.py`. Everything else is generated from it by `uv run demo sdk`, committed, and checked in CI: if any committed file differs from what the code generates, the build fails.
+
+```
+src/pitdemo/schemas.py (Pydantic)
+ ├─ openapi.json ............. HTTP API spec (OpenAPI 3.1), version 2026-10
+ ├─ sdk/schema.json ─┬─ sdk/python/pitdemo_sdk/models.py ... Python SDK (Pydantic)
+ │                   └─ sdk/ts/src/schemas.ts ............. TypeScript SDK (Zod)
+ └─ sdk/mcp-tools.json ....... MCP tool definitions (input and output schemas)
+```
+
+**[`openapi.json`](openapi.json)** is the place to start if you want your own client or want to load the API into your tools. The running server also serves it at `/openapi.json` and as interactive docs at `/docs`. The API is versioned by date (`2026-10`) rather than by semver.
 
 | Concern | Choice |
 |---|---|
