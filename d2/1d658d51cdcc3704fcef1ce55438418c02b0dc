@@ -1,0 +1,65 @@
+sdk/python/pitdemo_sdk/client.py
+  s_616c21e0e702ed::t_746ed872c2a830 73
+  s_616c21e0e702ed::t_d440f6fc5288d1 1-9,14,22,26,28,30-33,74-77,97-99,102-104,108,119-125,127,138-145,147,188-189,194-195,200-205,207-211
+sdk/python/pitdemo_sdk/models.py
+  s_616c21e0e702ed::t_80bb73683d5009 172-173,233-262,363-396,412-463
+  s_616c21e0e702ed::t_1b8e7291e2b484 5,26,50,108-109,123,174-181,206-220,334,464-471
+  s_616c21e0e702ed::t_7c2cf66c76f9d6 221-222,263-264,472-473
+README.md
+  s_616c21e0e702ed::t_64689c969784a3 81
+src/pitdemo/sdkgen.py
+  s_616c21e0e702ed::t_b231ad775d9147 72-74
+tests/test_serving.py
+  s_616c21e0e702ed::t_e887981c83a99a 15-21,73-75
+sdk/ts/src/client.ts
+  s_616c21e0e702ed::t_75f6fedcb3e501 1-5,9,13,15,17-20,27,58,60,72-73,76-78,82,86,90-96
+sdk/ts/src/schemas.ts
+  s_616c21e0e702ed::t_80bb73683d5009 28-37,46,52,54-56,61,64
+  s_616c21e0e702ed::t_1b8e7291e2b484 38-39,47,53,57,60,62-63,65-74
+  s_616c21e0e702ed::t_36d39b9119ea21 48
+sdk/python/pitdemo_sdk/__init__.py
+  s_616c21e0e702ed::t_f55d61bee04cb3 16,28
+src/pitdemo/api/mcp_server.py
+  s_616c21e0e702ed::t_1292b1431021f5 11,22-30,110-114,138,153
+tests/test_boundaries.py
+  s_616c21e0e702ed::t_9905be18cbcf10 1-219
+  s_616c21e0e702ed::t_baa775b43a78bc 220-223
+src/pitdemo/api/http.py
+  s_616c21e0e702ed::t_228a4b6fe4b2ee 20,24,26,28-32,37-38,44-45,89-91,95-96,99,110-111,113-114,117-118,121-124,127-128,131-132,134-135,137-140
+  s_616c21e0e702ed::t_3016300723d0f8 15-18,39-43,92-94
+tests/test_sdk_parity.py
+  s_616c21e0e702ed::t_95c3606daecacd 58-59,67-68,70-74
+sdk/schema.json
+  s_616c21e0e702ed::t_80bb73683d5009 105,119,126,129,132,583,683-684,687,696-711,778,788,791,861,867,870,878,889-893
+  s_616c21e0e702ed::t_1b8e7291e2b484 101-104,106-118,120-125,127-128,130-131,133-142,579-582,584-591,674-682,685-686,688-695,774-777,779-787,789-790,792-801,841-860,862-866,868-869,871-877,879-888,894-953
+src/pitdemo/schemas.py
+  s_616c21e0e702ed::t_8f72fa55434bb0 18,345-376,378-385,387-393,395-398,400-453,459,461-466
+  s_616c21e0e702ed::t_80bb73683d5009 377,386,394,399
+src/pitdemo/ingest/prices.py
+  s_616c21e0e702ed::t_cfb22ab9789f94 23,59,64,67-70,75-76
+src/pitdemo/ingest/edgar.py
+  s_616c21e0e702ed::t_cfb22ab9789f94 30,77-78,87-88,104,134-138
+sdk/ts/scripts/smoke.mjs
+  s_616c21e0e702ed::t_76170d05e6a1d4 34-38,41-59
+  s_616c21e0e702ed::t_5f2704a9339a9a 60
+AGENTS.md
+  s_616c21e0e702ed::t_64689c969784a3 51-56
+src/pitdemo/ingest/upstream.py
+  s_616c21e0e702ed::t_9891438ec69a66 1-170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d21d658d51cdcc3704fcef1ce55438418c02b0dc",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
