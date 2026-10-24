@@ -1,9 +1,17 @@
-"""Thin httpx client. Every response is parsed into a generated Pydantic model."""
+"""Thin httpx client over the generated models.
+
+* **Requests** are validated with the generated query models (``ConsensusQuery`` etc.)
+  before anything is sent, so a malformed ticker, period or date fails locally with a
+  ``pydantic.ValidationError``, under the same rules the server applies.
+* **Responses** are parsed in strict mode: JSON-native forms are accepted (date strings,
+  an integer where a float is expected), but a number sent as a string or an unknown
+  enum value is rejected, so server-side type drift surfaces immediately.
+"""
 
 from __future__ import annotations
 
 import datetime as dt
-from typing import Literal, TypeVar
+from typing import Any, Literal, TypeVar
 
 import httpx
 import polars as pl
@@ -11,11 +19,18 @@ from pydantic import BaseModel, ValidationError
 
 from pitdemo_sdk.models import (
     AdjustmentExplanation,
+    ConsensusQuery,
     ConsensusResult,
     ConsensusSeries,
     CorporateActionList,
+    CorporateActionsQuery,
     ErrorResponse,
+    ExplainQuery,
     RevisionSignal,
+    RevisionsQuery,
+    SeriesQuery,
+    Universe,
+    UniverseQuery,
 )
 
 M = TypeVar("M", bound=BaseModel)
@@ -55,6 +70,11 @@ def _iso(value: str | dt.date | None) -> str | None:
     return value.isoformat()
 
 
+def _query[Q: BaseModel](model: type[Q], **params: Any) -> Q:
+    """Validate request parameters locally (raises ``pydantic.ValidationError``)."""
+    return model.model_validate({k: v for k, v in params.items() if v is not None})
+
+
 class PitClient:
     def __init__(
         self,
@@ -74,15 +94,18 @@ class PitClient:
     def close(self) -> None:
         self._http.close()
 
-    def _get(self, path: str, model: type[M], params: dict[str, str | int | None]) -> M:
-        resp = self._http.get(path, params={k: v for k, v in params.items() if v is not None})
+    def _get(self, path: str, model: type[M], query: BaseModel) -> M:
+        params = query.model_dump(mode="json", exclude_none=True)
+        resp = self._http.get(path, params=params)
         if resp.status_code >= 400:
             try:
-                typed: ErrorResponse | None = ErrorResponse.model_validate_json(resp.content)
+                typed: ErrorResponse | None = ErrorResponse.model_validate_json(
+                    resp.content, strict=True
+                )
             except ValidationError:
                 typed = None
             raise PitApiError(resp.status_code, typed, resp.text)
-        return model.model_validate_json(resp.content)
+        return model.model_validate_json(resp.content, strict=True)
 
     def consensus(
         self,
@@ -93,17 +116,15 @@ class PitClient:
         known_as_of: str | dt.date | None = None,
     ) -> ConsensusResult:
         """Point-in-time consensus. ``as_of`` as a date means end of that day, UTC."""
-        return self._get(
-            "/consensus",
-            ConsensusResult,
-            {
-                "ticker": ticker,
-                "period": period,
-                "as_of": _iso(as_of),
-                "basis": basis,
-                "known_as_of": _iso(known_as_of),
-            },
+        query = _query(
+            ConsensusQuery,
+            ticker=ticker,
+            period=period,
+            as_of=_iso(as_of),
+            basis=basis,
+            known_as_of=_iso(known_as_of),
         )
+        return self._get("/consensus", ConsensusResult, query)
 
     def consensus_series(
         self,
@@ -114,18 +135,16 @@ class PitClient:
         basis: Basis = "adjusted",
         known_as_of: str | dt.date | None = None,
     ) -> ConsensusSeries:
-        return self._get(
-            "/consensus/series",
-            ConsensusSeries,
-            {
-                "ticker": ticker,
-                "period": period,
-                "start": _iso(start),
-                "end": _iso(end),
-                "basis": basis,
-                "known_as_of": _iso(known_as_of),
-            },
+        query = _query(
+            SeriesQuery,
+            ticker=ticker,
+            period=period,
+            start=_iso(start),
+            end=_iso(end),
+            basis=basis,
+            known_as_of=_iso(known_as_of),
         )
+        return self._get("/consensus/series", ConsensusSeries, query)
 
     def consensus_frame(
         self,
@@ -166,27 +185,27 @@ class PitClient:
         return df
 
     def corporate_actions(self, ticker: str) -> CorporateActionList:
-        return self._get("/corporate-actions", CorporateActionList, {"ticker": ticker})
+        query = _query(CorporateActionsQuery, ticker=ticker)
+        return self._get("/corporate-actions", CorporateActionList, query)
 
     def explain(
         self, ticker: str, date: str | dt.date, period: str = "FY1"
     ) -> AdjustmentExplanation:
-        return self._get(
-            "/explain",
-            AdjustmentExplanation,
-            {"ticker": ticker, "date": _iso(date), "period": period},
-        )
+        query = _query(ExplainQuery, ticker=ticker, date=_iso(date), period=period)
+        return self._get("/explain", AdjustmentExplanation, query)
 
     def revisions(
         self, ticker: str, period: str, as_of: str | dt.date, lookback_days: int = 30
     ) -> RevisionSignal:
-        return self._get(
-            "/revisions",
-            RevisionSignal,
-            {
-                "ticker": ticker,
-                "period": period,
-                "as_of": _iso(as_of),
-                "lookback_days": lookback_days,
-            },
+        query = _query(
+            RevisionsQuery,
+            ticker=ticker,
+            period=period,
+            as_of=_iso(as_of),
+            lookback_days=lookback_days,
         )
+        return self._get("/revisions", RevisionSignal, query)
+
+    def universe(self, date: str | dt.date) -> Universe:
+        """Securities listed on ``date`` (delisted names drop out)."""
+        return self._get("/universe", Universe, _query(UniverseQuery, date=_iso(date)))

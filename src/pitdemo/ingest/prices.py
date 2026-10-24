@@ -20,6 +20,7 @@ from typing import Any, cast
 import httpx
 import polars as pl
 
+from pitdemo.ingest.upstream import YahooChartResult, parse_upstream
 from pitdemo.schemas import PricesFrame
 
 CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
@@ -55,24 +56,24 @@ def fetch_chart(
     if resp.status_code != 200 or not chart.get("result"):
         err = (chart.get("error") or {}).get("description", f"HTTP {resp.status_code}")
         return PriceFetch(ticker, None, (), str(err))
-    res = chart["result"][0]
+    res = parse_upstream(YahooChartResult, chart["result"][0], f"Yahoo chart for {ticker}")
 
     def to_date(ts: int) -> dt.date:
         return (dt.datetime.fromtimestamp(ts, dt.UTC) + NEW_YORK_OFFSET).date()
 
-    quote = res["indicators"]["quote"][0]
+    quote = res.indicators.quote[0]
     prices = pl.DataFrame(
         {
-            "security_id": [security_id] * len(res["timestamp"]),
-            "date": [to_date(t) for t in res["timestamp"]],
-            "close": quote["close"],
-            "volume": [float(v) if v is not None else None for v in quote["volume"]],
+            "security_id": [security_id] * len(res.timestamp),
+            "date": [to_date(t) for t in res.timestamp],
+            "close": quote.close,
+            "volume": quote.volume,
         },
         schema=PricesFrame.polars_schema(),
     ).drop_nulls("close")
     splits = tuple(
-        SplitEvent(ticker, to_date(int(s["date"])), float(s["numerator"]) / float(s["denominator"]))
-        for s in res.get("events", {}).get("splits", {}).values()
+        SplitEvent(ticker, to_date(s.date), s.numerator / s.denominator)
+        for s in res.events.splits.values()
     )
     return PriceFetch(ticker, PricesFrame.validate(prices), splits, None)
 

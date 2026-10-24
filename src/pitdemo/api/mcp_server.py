@@ -8,6 +8,7 @@ and failures come back as typed errors (``NotFound``, ``InsufficientEstimates``,
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
@@ -18,7 +19,15 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 
-from pitdemo.schemas import AdjustmentExplanation, ConsensusResult, CorporateActionList
+from pitdemo.schemas import (
+    AdjustmentExplanation,
+    Basis,
+    ConsensusResult,
+    CorporateActionList,
+    InstantParam,
+    PeriodParam,
+    TickerParam,
+)
 from pitdemo.service import Service, ServiceError
 from pitdemo.store import Store
 
@@ -98,11 +107,11 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
         ),
     )
     def get_consensus(
-        ticker: str,
-        fiscal_period: str,
-        as_of: str,
-        basis: Literal["adjusted", "unadjusted"] = "adjusted",
-        known_as_of: str | None = None,
+        ticker: TickerParam,
+        fiscal_period: PeriodParam,
+        as_of: InstantParam,
+        basis: Basis = "adjusted",
+        known_as_of: InstantParam | None = None,
     ) -> ConsensusResult:
         s = svc()
         return _call(
@@ -126,7 +135,7 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
         ),
     )
     def explain_adjustment(
-        ticker: str, date: str, fiscal_period: str = "FY1"
+        ticker: TickerParam, date: dt.date, fiscal_period: PeriodParam = "FY1"
     ) -> AdjustmentExplanation:
         s = svc()
         return _call(lambda: s.explain(ticker, date, fiscal_period, max_items=MAX_ITEMS))
@@ -141,7 +150,7 @@ def create_server(service: Service | None = None, db_path: Path | None = None) -
             "`ticker` may be a current or former ticker, or a SEC-#### id."
         ),
     )
-    def list_corporate_actions(ticker: str) -> CorporateActionList:
+    def list_corporate_actions(ticker: TickerParam) -> CorporateActionList:
         s = svc()
         return _call(lambda: s.corporate_actions(ticker))
 

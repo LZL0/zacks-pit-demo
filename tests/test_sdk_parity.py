@@ -55,7 +55,8 @@ def test_server_output_validates_against_sdk_models(service: Service) -> None:
 def test_every_api_model_is_in_the_schema() -> None:
     import json
 
-    defs = set(json.loads(SCHEMA_PATH.read_text())["$defs"])
+    all_defs = json.loads(SCHEMA_PATH.read_text())["$defs"]
+    defs = set(all_defs)
     assert {
         "ConsensusResult",
         "ConsensusSeries",
@@ -63,9 +64,14 @@ def test_every_api_model_is_in_the_schema() -> None:
         "ErrorResponse",
         "AdjustmentExplanation",
         "RevisionSignal",
+        "Universe",
+        "ConsensusQuery",
     } <= defs
-    for name in defs:
-        assert hasattr(sdk_models, name), name
+    # Object models must exist as classes; plain aliases (e.g. FixedPeriodParam, a
+    # constrained string) may be inlined into the fields that use them.
+    for name, spec in all_defs.items():
+        if spec.get("type") == "object":
+            assert hasattr(sdk_models, name), name
     ts = (TS / "src" / "schemas.ts").read_text()
     for name in defs:
         assert f"export const {name}Schema" in ts, name

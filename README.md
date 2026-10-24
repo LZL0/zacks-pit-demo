@@ -78,7 +78,7 @@ synthetic estimates (seed 42) ──────────┘                 
 | Concern | Choice |
 |---|---|
 | Frames / store | Polars, DuckDB, Parquet |
-| Validation | Pandera (frames entering the store), Pydantic v2 (everything at the boundary) |
+| Validation | Pandera (frames entering the store); Pydantic v2 at every boundary: API requests and responses, MCP tool arguments, both SDKs (requests checked before sending, responses parsed strictly), and the SEC/Yahoo payloads we ingest |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
 | Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12, 3.13, 3.14 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |

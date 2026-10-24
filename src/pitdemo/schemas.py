@@ -15,7 +15,7 @@ from typing import Annotated, Any, Literal, NewType
 import pandera.polars as pa
 import polars as pl
 from pandera.api.polars.model_config import BaseConfig
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, WithJsonSchema
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, PlainSerializer, WithJsonSchema
 
 # --------------------------------------------------------------------------- types
 
@@ -342,11 +342,126 @@ class ErrorResponse(Model):
     hint: str | None = None
 
 
-API_MODELS: tuple[type[Model], ...] = (
+class UniverseMember(Model):
+    security_id: str
+    ticker: str = Field(description="Ticker in use on the requested date.")
+
+
+class Universe(Model):
+    """Securities listed on a date. Delisted names drop out; their history stays."""
+
+    date: dt.date
+    securities: list[UniverseMember]
+
+
+# ------------------------------------------------------------- request models
+#
+# The same constrained types are used by the HTTP query models, the MCP tool
+# signatures and (via sdk/schema.json) both SDKs, so a request is checked the same
+# way everywhere. Patterns are deliberately forgiving about case and surrounding
+# spaces; values are normalized (stripped, upper-cased) after validation.
+
+
+def _normalize(value: str) -> str:
+    return value.strip().upper()
+
+
+TICKER_PATTERN = r"^\s*([A-Za-z][A-Za-z0-9.\-]{0,9}|[Ss][Ee][Cc]-[0-9]{4})\s*$"
+PERIOD_PATTERN = r"^\s*[Ff][Yy]([0-9]{4}|[12])\s*$"
+FIXED_PERIOD_PATTERN = r"^\s*[Ff][Yy][0-9]{4}\s*$"
+INSTANT_PATTERN = (
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    r"([T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$"
+)
+
+type TickerParam = Annotated[
+    str,
+    Field(
+        pattern=TICKER_PATTERN,
+        description="Ticker as of the query date (e.g. NVDA, SIVB), or a permanent "
+        "security id (e.g. SEC-0005).",
+    ),
+    AfterValidator(_normalize),
+]
+type PeriodParam = Annotated[
+    str,
+    Field(
+        pattern=PERIOD_PATTERN,
+        description="Fixed fiscal-year label (FY2025, preferred) or relative FY1/FY2.",
+    ),
+    AfterValidator(_normalize),
+]
+type FixedPeriodParam = Annotated[
+    str,
+    Field(pattern=FIXED_PERIOD_PATTERN, description="Fixed fiscal-year label, e.g. FY2025."),
+    AfterValidator(_normalize),
+]
+type InstantParam = Annotated[
+    str,
+    Field(
+        pattern=INSTANT_PATTERN,
+        description="ISO date (read as the end of that day, UTC) or ISO datetime "
+        "(UTC unless an offset is given).",
+    ),
+]
+
+
+class Query(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ConsensusQuery(Query):
+    ticker: TickerParam
+    period: PeriodParam
+    as_of: InstantParam
+    basis: Basis = "adjusted"
+    known_as_of: InstantParam | None = Field(
+        default=None, description="Ignore corporate actions announced after this instant."
+    )
+
+
+class SeriesQuery(Query):
+    ticker: TickerParam
+    period: FixedPeriodParam
+    start: dt.date
+    end: dt.date
+    basis: Basis = "adjusted"
+    known_as_of: InstantParam | None = None
+
+
+class CorporateActionsQuery(Query):
+    ticker: TickerParam
+
+
+class ExplainQuery(Query):
+    ticker: TickerParam
+    date: dt.date
+    period: PeriodParam = "FY1"
+
+
+class RevisionsQuery(Query):
+    ticker: TickerParam
+    period: PeriodParam
+    as_of: InstantParam
+    lookback_days: int = Field(default=30, ge=1, le=365)
+
+
+class UniverseQuery(Query):
+    date: dt.date
+
+
+API_MODELS: tuple[type[BaseModel], ...] = (
     ConsensusResult,
     ConsensusSeries,
     CorporateActionList,
     AdjustmentExplanation,
     RevisionSignal,
+    Universe,
     ErrorResponse,
+    ConsensusQuery,
+    SeriesQuery,
+    CorporateActionsQuery,
+    ExplainQuery,
+    RevisionsQuery,
+    UniverseQuery,
 )

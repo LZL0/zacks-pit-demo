@@ -27,6 +27,7 @@ import httpx
 import polars as pl
 
 from pitdemo.ids import SECURITIES, SecurityMaster
+from pitdemo.ingest.upstream import CompanyFacts, EdgarSlim, SubmissionsColumns, parse_upstream
 from pitdemo.periods import fiscal_label_for_period_end
 from pitdemo.schemas import ActualsFrame, ReportEventsFrame
 
@@ -73,7 +74,8 @@ def fetch_submissions(client: httpx.Client, cik: int) -> list[dict[str, Any]]:
         time.sleep(0.15)  # SEC fair-access limit is 10 req/s; stay well under it
         pages.append(_get_json(client, SUBMISSIONS_PAGE_URL.format(name=extra["name"])))
     out: list[dict[str, Any]] = []
-    for page in pages:
+    for n, page in enumerate(pages):
+        parse_upstream(SubmissionsColumns, page, f"SEC filing index for CIK {cik} (page {n})")
         cols = list(page.keys())
         for i in range(len(page["accessionNumber"])):
             out.append({c: page[c][i] for c in cols})
@@ -82,6 +84,8 @@ def fetch_submissions(client: httpx.Client, cik: int) -> list[dict[str, Any]]:
 
 def slim(cik: int, facts: dict[str, Any], filings: list[dict[str, Any]]) -> dict[str, Any]:
     """Keep only diluted EPS facts and the filing index entries the demo needs."""
+    parsed = parse_upstream(CompanyFacts, facts, f"SEC companyfacts for CIK {cik}")
+    # Keep SEC's own JSON for each fact (validated above) so the committed file is faithful.
     eps_rows = facts["facts"]["us-gaap"][EPS_TAG]["units"]["USD/shares"]
     kept = [
         {
@@ -97,7 +101,7 @@ def slim(cik: int, facts: dict[str, Any], filings: list[dict[str, Any]]) -> dict
     kept.sort(key=lambda r: (r["acceptance"], r["accession"]))
     return {
         "cik": cik,
-        "entity_name": facts["entityName"],
+        "entity_name": parsed.entityName,
         "sources": [COMPANYFACTS_URL.format(cik=cik), SUBMISSIONS_URL.format(cik=cik)],
         "tag": f"us-gaap:{EPS_TAG}",
         "eps_diluted": sorted(eps_rows, key=lambda r: (r["end"], r["filed"], r["accn"])),
@@ -127,7 +131,11 @@ def fetch_all(raw_dir: Path, securities: tuple[SecurityMaster, ...] = SECURITIES
 
 
 def load_raw(raw_dir: Path, cik: int) -> dict[str, Any]:
-    return cast(dict[str, Any], json.loads(raw_path(raw_dir, cik).read_text()))
+    """Load a slim EDGAR file, checking it has the shape the parsers rely on."""
+    path = raw_path(raw_dir, cik)
+    data = cast(dict[str, Any], json.loads(path.read_text()))
+    parse_upstream(EdgarSlim, data, str(path))
+    return data
 
 
 NEW_YORK = ZoneInfo("America/New_York")
