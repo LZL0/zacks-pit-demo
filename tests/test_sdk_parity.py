@@ -134,3 +134,43 @@ def test_mcp_tool_definitions_match_the_code() -> None:
     tools = {t["name"]: t for t in json.loads(MCP_TOOLS_PATH.read_text())["tools"]}
     assert sorted(tools) == ["explain_adjustment", "get_consensus", "list_corporate_actions"]
     assert tools["get_consensus"]["outputSchema"]["title"] == "ConsensusResult"
+
+
+def test_mcp_tool_arguments_match_the_request_models() -> None:
+    """MCP arguments are annotated separately (so errors stay typed); check they advertise
+    exactly the same patterns and descriptions as the request models they are validated
+    with, so the two can't drift apart."""
+    import json
+
+    from pitdemo.schemas import ConsensusQuery, CorporateActionsQuery, ExplainQuery
+    from pitdemo.sdkgen import MCP_TOOLS_PATH
+
+    def fields(model: type) -> dict[str, dict[str, object]]:
+        schema = model.model_json_schema()  # type: ignore[attr-defined]
+        defs = schema.get("$defs", {})
+        out = {}
+        for name, prop in schema["properties"].items():
+            ref = prop.get("$ref") or next(
+                (p["$ref"] for p in prop.get("anyOf", []) if "$ref" in p), None
+            )
+            out[name] = defs[ref.split("/")[-1]] if ref else prop
+        return out
+
+    tools = {t["name"]: t for t in json.loads(MCP_TOOLS_PATH.read_text())["tools"]}
+    pairs = [
+        ("get_consensus", ConsensusQuery, {"fiscal_period": "period"}),
+        ("explain_adjustment", ExplainQuery, {"fiscal_period": "period"}),
+        ("list_corporate_actions", CorporateActionsQuery, {}),
+    ]
+    for tool, model, renamed in pairs:
+        model_fields = fields(model)
+        for arg, spec in tools[tool]["inputSchema"]["properties"].items():
+            target = model_fields[renamed.get(arg, arg)]
+            arg_spec = (
+                spec
+                if "anyOf" not in spec
+                else next(p for p in spec["anyOf"] if p.get("type") == "string")
+            )
+            if "pattern" in target:
+                assert arg_spec.get("pattern") == target["pattern"], (tool, arg)
+                assert arg_spec.get("description") == target.get("description"), (tool, arg)
