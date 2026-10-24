@@ -1,0 +1,46 @@
+docs/methodology.md
+  s_616c21e0e702ed::t_cdce7c7c18ecdc 13,55-57
+scripts/record/capture.py
+  s_616c21e0e702ed::t_f5c78e50c98b26 1-54
+scripts/record/render.py
+  s_616c21e0e702ed::t_54f78b81dafd4e 1-29,31-34,38-48,50-77,83-113,116-135,139-149,151-180,203-216,218-228,236-246,250-252
+  s_616c21e0e702ed::t_f51edc2b7b7f43 30,114-115
+  s_616c21e0e702ed::t_6d83de5eee7781 35-37,49,217
+  s_616c21e0e702ed::t_a11b87690d712e 150
+  s_616c21e0e702ed::t_651b1bea0be408 78-82,136-138,181-202,229-235,247-249
+scripts/record/ask.py
+  s_616c21e0e702ed::t_c986b95eb26f6d 7-11,74-79,96
+docs/demo.cast
+  s_616c21e0e702ed::t_89f500b7dbe50e 2-35
+  s_616c21e0e702ed::t_8665a6b08b939b 1
+src/pitdemo/ingest/synth.py
+  s_616c21e0e702ed::t_3a9eebd6d39c46 38,356,358-359
+.claude/skills/query-pit-consensus/SKILL.md
+  s_616c21e0e702ed::t_cdce7c7c18ecdc 51,53-54
+README.md
+  s_616c21e0e702ed::t_cdce7c7c18ecdc 28
+  s_616c21e0e702ed::t_0819717e55692d 5,49
+  s_616c21e0e702ed::t_e91f17cac34790 7-9,94-97
+tests/test_data_layer.py
+  s_616c21e0e702ed::t_7cc67382975444 63-70
+.github/workflows/ci.yml
+  s_616c21e0e702ed::t_a11b87690d712e 40
+PLAN.md
+  s_616c21e0e702ed::t_0319e2f3d61e90 28,200-201,250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a20092a059d433dea07f79ed22af125b3c845b3e",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
