@@ -79,7 +79,7 @@ synthetic estimates (seed 42) ──────────┘                 
 | Validation | Pandera (frames entering the store), Pydantic v2 (everything at the boundary) |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
-| Quality | pytest, Hypothesis, ruff, mypy `--strict`, GitHub Actions |
+| Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12 and 3.15, plus an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio) |
 
 ## Commands
 
@@ -91,6 +91,7 @@ uv run demo chart      # docs/nvda_consensus.png
 uv run demo sdk        # regenerate sdk/schema.json, Python models, Zod schemas
 uv run demo serve      # FastAPI on :8000
 uv run demo mcp        # MCP over stdio (--transport streamable-http for HTTP on :8001)
+uv run python scripts/ci/smoke.py   # end-to-end: server + Python/TS SDKs + MCP stdio
 
 # Re-record docs/demo.gif + docs/demo.mp4 (runs real Claude Code headless against the MCP server)
 uv run python scripts/record/capture.py docs/demo.cast
