@@ -33,6 +33,28 @@ from pitdemo.schemas import (
 from pitdemo.service import Service, ServiceError, describe_validation_errors
 from pitdemo.store import Store
 
+REPO = "https://github.com/LZL0/zacks-pit-demo"
+API_DESCRIPTION = f"""\
+Point-in-time EPS consensus with per-estimate split adjustment: what the consensus was
+*as it could have been known* on a date, with every estimate's share basis resolved
+individually around stock splits.
+
+**Data.** Analyst estimates are **synthetic** (seeded). EPS actuals (SEC EDGAR),
+earnings-release times and corporate actions (SEC filings and other primary sources) are
+real.
+
+**Conventions.** A bare date means the end of that day, UTC. `basis=adjusted` puts every
+value on the latest share basis; `basis=unadjusted` shows what a screen showed that day.
+Errors are typed (`InvalidRequest` 400, `NotFound` 404).
+
+**Versioning.** The API is versioned by date; this is version `{API_VERSION}`.
+
+**One schema, four outputs.** This spec and the Python (Pydantic) and TypeScript (Zod)
+SDKs are generated from the same Pydantic models. The MCP tools validate their arguments
+with those same request models and advertise the same formats. CI fails if any of them
+drifts. Source and methodology: [{REPO.removeprefix("https://")}]({REPO}).
+"""
+
 STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}
 
 # Documented error responses. Too few estimates is not an HTTP error: it is a 200 with
@@ -64,11 +86,7 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
     app = FastAPI(
         title="Point-in-time consensus demo",
         version=API_VERSION,
-        description=(
-            "Point-in-time EPS consensus with per-estimate split adjustment. "
-            "Analyst estimates are SYNTHETIC; actuals (SEC EDGAR) and corporate actions "
-            "(primary sources) are real."
-        ),
+        description=API_DESCRIPTION,
         lifespan=lifespan,
         servers=[{"url": "http://127.0.0.1:8000", "description": "Local (`uv run demo serve`)"}],
     )
@@ -115,38 +133,90 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
 
     # Query parameters are Pydantic models (schemas.py), shared with the SDKs.
 
-    @app.get("/consensus", response_model=ConsensusResult, responses=ERRORS)
+    @app.get(
+        "/consensus",
+        response_model=ConsensusResult,
+        responses=ERRORS,
+        tags=["Consensus"],
+        summary="Point-in-time consensus",
+    )
     def get_consensus(request: Request, q: Annotated[ConsensusQuery, Query()]) -> ConsensusResult:
+        """EPS consensus for one security and fiscal year exactly as it could have been
+        computed at `as_of`: mean, median, high, low, stdev and count, every contributing
+        estimate with its share-basis decision, every exclusion with its reason, and the
+        corporate actions applied. Fewer than 3 qualifying estimates returns 200 with
+        `insufficient: true`."""
         return svc(request).get_consensus(q.ticker, q.period, q.as_of, q.basis, q.known_as_of)
 
-    @app.get("/consensus/series", response_model=ConsensusSeries, responses=ERRORS)
+    @app.get(
+        "/consensus/series",
+        response_model=ConsensusSeries,
+        responses=ERRORS,
+        tags=["Consensus"],
+        summary="Consensus time series",
+    )
     def get_series(request: Request, q: Annotated[SeriesQuery, Query()]) -> ConsensusSeries:
+        """Daily (trading-day) point-in-time consensus between `start` and `end`, for a
+        fixed fiscal-year label. Each point is computed as of the end of that day."""
         return svc(request).get_series(q.ticker, q.period, q.start, q.end, q.basis, q.known_as_of)
 
-    @app.get("/corporate-actions", response_model=CorporateActionList, responses=ERRORS)
+    @app.get(
+        "/explain",
+        response_model=AdjustmentExplanation,
+        responses=ERRORS,
+        tags=["Consensus"],
+        summary="Explain an adjustment",
+    )
+    def get_explain(request: Request, q: Annotated[ExplainQuery, Query()]) -> AdjustmentExplanation:
+        """How the adjusted consensus on `date` was built: split factors applied (with
+        primary sources), each estimate's basis decision, exclusions, and what a naive
+        average of raw published values would have shown."""
+        return svc(request).explain(q.ticker, q.date, q.period, max_items=None)
+
+    @app.get(
+        "/revisions",
+        response_model=RevisionSignal,
+        responses=ERRORS,
+        tags=["Consensus"],
+        summary="Revision signal",
+    )
+    def get_revisions(request: Request, q: Annotated[RevisionsQuery, Query()]) -> RevisionSignal:
+        """Per-broker revisions over a lookback window, comparing each broker with itself,
+        so brokers adding or dropping coverage don't move the signal."""
+        return svc(request).revisions(q.ticker, q.period, q.as_of, q.lookback_days)
+
+    @app.get(
+        "/corporate-actions",
+        response_model=CorporateActionList,
+        responses=ERRORS,
+        tags=["Reference data"],
+        summary="Corporate actions",
+    )
     def get_corporate_actions(
         request: Request, q: Annotated[CorporateActionsQuery, Query()]
     ) -> CorporateActionList:
+        """Splits, reverse splits, spin-offs and delistings for a security, each with its
+        announcement time, ex-date, share ratio and primary-source URL."""
         return svc(request).corporate_actions(q.ticker)
 
-    @app.get("/explain", response_model=AdjustmentExplanation, responses=ERRORS)
-    def get_explain(request: Request, q: Annotated[ExplainQuery, Query()]) -> AdjustmentExplanation:
-        return svc(request).explain(q.ticker, q.date, q.period, max_items=None)
-
-    @app.get("/revisions", response_model=RevisionSignal, responses=ERRORS)
-    def get_revisions(request: Request, q: Annotated[RevisionsQuery, Query()]) -> RevisionSignal:
-        return svc(request).revisions(q.ticker, q.period, q.as_of, q.lookback_days)
-
-    @app.get("/universe", response_model=Universe, responses=ERRORS)
+    @app.get(
+        "/universe",
+        response_model=Universe,
+        responses=ERRORS,
+        tags=["Reference data"],
+        summary="Universe on a date",
+    )
     def get_universe(request: Request, q: Annotated[UniverseQuery, Query()]) -> Universe:
-        """Securities listed on `date` (delisted names drop out; their history stays)."""
+        """Securities listed on `date`, with the ticker each used that day. Delisted names
+        drop out; their history stays queryable."""
         members = [
             UniverseMember(security_id=sid, ticker=t) for sid, t in svc(request).universe(q.date)
         ]
         return Universe(date=q.date, securities=members)
 
-    @app.get("/healthz", response_model=Health)
+    @app.get("/healthz", response_model=Health, tags=["Operations"], summary="Health check")
     def healthz(request: Request) -> Health:
+        """Liveness, the dated API version, and consensus-cache statistics."""
         s = svc(request)
         return Health(
             ok=True,
