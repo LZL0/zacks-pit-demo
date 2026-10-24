@@ -2,7 +2,7 @@
 
 1. Builds the DuckDB file (``demo build``).
 2. Starts the HTTP server (``demo serve``) as a subprocess and waits for /healthz.
-3. Runs the Python SDK and the built TypeScript SDK against it.
+3. Runs the Python SDK and the TypeScript SDK (installed and built if needed) against it.
 4. Starts the MCP server over stdio (``demo mcp``) and calls a tool.
 
 Unit tests cover each piece in-process; this checks that the processes, ports,
@@ -79,14 +79,16 @@ def python_sdk() -> None:
 
 
 def ts_sdk() -> None:
-    node = shutil.which("node")
-    if node is None:
-        raise SystemExit("node not found")
+    node, npm = shutil.which("node"), shutil.which("npm")
+    if node is None or npm is None:
+        raise SystemExit("node/npm not found; the TypeScript SDK check needs Node.js")
+    ts = ROOT / "sdk" / "ts"
+    # Works from a clean checkout: install and build the SDK if needed.
+    if not (ts / "node_modules").exists():
+        subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=ts, check=True)
+    subprocess.run([npm, "run", "-s", "build"], cwd=ts, check=True)
     subprocess.run(
-        [node, "scripts/smoke.mjs"],
-        cwd=ROOT / "sdk" / "ts",
-        env={**os.environ, "PITDEMO_URL": URL},
-        check=True,
+        [node, "scripts/smoke.mjs"], cwd=ts, env={**os.environ, "PITDEMO_URL": URL}, check=True
     )
 
 

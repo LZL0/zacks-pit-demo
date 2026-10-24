@@ -1,6 +1,35 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": ".python-version is the minimum supported version (CI also tests the newest), not something to keep at latest",
+      "matchManagers": ["pyenv"],
+      "enabled": false
+    },
+    {
+      "description": "Python dev tooling in one PR",
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["pytest", "hypothesis", "ruff", "mypy", "datamodel-code-generator"],
+      "groupName": "python dev tools"
+    },
+    {
+      "description": "TypeScript SDK build tooling in one PR (generated schemas are re-checked in CI)",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "ts sdk dev tools"
+    },
+    {
+      "description": "GitHub Actions in one PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
   ]
 }

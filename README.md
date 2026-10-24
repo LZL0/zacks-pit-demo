@@ -79,7 +79,7 @@ synthetic estimates (seed 42) ──────────┘                 
 | Validation | Pandera (frames entering the store), Pydantic v2 (everything at the boundary) |
 | Serving | FastAPI; official MCP Python SDK (`MCPServer`, v2) |
 | SDKs | `sdk/python` (httpx + generated Pydantic models), `sdk/ts` (fetch + generated Zod schemas) |
-| Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12 and 3.15, plus an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio) |
+| Quality | pytest, Hypothesis, ruff, mypy `--strict`; GitHub Actions on Python 3.12 and 3.15, an end-to-end smoke job (HTTP server, both SDKs, MCP over stdio), and a weekly job that re-verifies the real sources against the committed data |
 
 ## Commands
 
@@ -92,6 +92,7 @@ uv run demo sdk        # regenerate sdk/schema.json, Python models, Zod schemas
 uv run demo serve      # FastAPI on :8000
 uv run demo mcp        # MCP over stdio (--transport streamable-http for HTTP on :8001)
 uv run python scripts/ci/smoke.py   # end-to-end: server + Python/TS SDKs + MCP stdio
+uv run python scripts/ci/verify_sources.py   # network: SEC history unchanged, splits, source URLs
 
 # Re-record docs/demo.gif + docs/demo.mp4 (runs real Claude Code headless against the MCP server)
 uv run python scripts/record/capture.py docs/demo.cast
@@ -99,6 +100,8 @@ uv run python scripts/record/render.py docs/demo.cast docs/demo.mp4 docs/demo.gi
 ```
 
 The committed `data/raw/` holds slimmed EDGAR JSON and the corporate-actions CSV, so everything except `ingest` runs offline. Price data is fetched only to cross-check split dates and is not committed.
+
+A weekly workflow (`.github/workflows/verify-sources.yml`) fetches fresh copies and fails if SEC has changed any committed history, if a new split or spin-off is missing from the corporate-actions table, or if a primary-source URL stops resolving. It needs a repository variable `SEC_USER_AGENT` (e.g. `Your Name you@example.com`), which SEC asks for.
 
 ## Layout
 
