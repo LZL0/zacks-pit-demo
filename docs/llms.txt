@@ -1,0 +1,36 @@
+# zacks-pit-demo
+
+> Point-in-time EPS consensus with per-estimate split adjustment, served over HTTP and MCP. Analyst estimates are SYNTHETIC (seeded); EPS actuals (SEC EDGAR) and corporate actions (SEC filings, FDIC) are real. Universe: NVDA, AAPL, TSLA, GE, SIVB/SIVBQ.
+
+Rules for agents:
+
+- Always pass an explicit as_of date (YYYY-MM-DD = end of that day, UTC). Never assume "today".
+- State the basis in every answer. basis=adjusted (default): latest share basis, comparable across splits. basis=unadjusted: the share basis on as_of (what a screen showed that day).
+- Prefer fixed fiscal labels (FY2025). FY1/FY2 roll at each annual earnings release; if you use them, report the fixed label the answer resolved to.
+- Report value, as_of, basis, contributor count, and that estimates are synthetic. Mention warnings and exclusions if present.
+- Tickers resolve as of the query date. SIVB stopped trading on Nasdaq in March 2023 (then SIVBQ); use SEC-0005 to query regardless of ticker.
+- insufficient=true (or error InsufficientEstimates) means fewer than 3 qualifying estimates. Say so; do not average what is left.
+- For "why did the number change?" around a split, spin-off or exclusion, call explain_adjustment.
+
+## MCP tools (server name: pit-consensus; `uv run demo mcp`)
+
+- get_consensus(ticker, fiscal_period, as_of, basis="adjusted", known_as_of=None): consensus with contributors, exclusions, applied corporate actions and warnings.
+- explain_adjustment(ticker, date, fiscal_period="FY1"): factors applied (with source URLs), per-estimate basis decisions, exclusions, and the naive average for contrast.
+- list_corporate_actions(ticker): splits, reverse splits, spin-offs, delistings with known_at, ex_date, ratio and primary source.
+
+Errors are typed: NotFound, InsufficientEstimates, InvalidRequest (JSON with error, message, hint).
+
+## HTTP (`uv run demo serve`, port 8000; OpenAPI at /docs)
+
+- GET /consensus?ticker=&period=&as_of=&basis=&known_as_of=
+- GET /consensus/series?ticker=&period=&start=&end=&basis=
+- GET /corporate-actions?ticker=
+- GET /explain?ticker=&date=&period=
+- GET /revisions?ticker=&period=&as_of=&lookback_days=
+- GET /universe?date=
+
+## Docs
+
+- [Methodology](methodology.md): consensus rules, split and spin-off handling, PIT guarantees, what is synthetic.
+- [Schema](../sdk/schema.json): JSON Schema for every response; Python (Pydantic) and TypeScript (Zod) SDKs are generated from it.
+- [Corporate actions](../data/raw/corporate_actions.csv): every row cites a primary source.

@@ -1,0 +1,752 @@
+{
+  "$defs": {
+    "AdjustmentExplanation": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "consensus_adjusted": {
+          "$ref": "#/$defs/ConsensusResult"
+        },
+        "fiscal_period": {
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "naive_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Average of raw published values with no basis handling, for contrast.",
+          "title": "Naive Mean"
+        },
+        "narrative": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Narrative",
+          "type": "array"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRef"
+        }
+      },
+      "required": [
+        "security",
+        "as_of",
+        "fiscal_period",
+        "consensus_adjusted",
+        "naive_mean",
+        "narrative"
+      ],
+      "title": "AdjustmentExplanation",
+      "type": "object"
+    },
+    "ConsensusPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "insufficient": {
+          "title": "Insufficient",
+          "type": "boolean"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mean"
+        },
+        "median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median"
+        }
+      },
+      "required": [
+        "as_of",
+        "mean",
+        "median",
+        "count",
+        "insufficient"
+      ],
+      "title": "ConsensusPoint",
+      "type": "object"
+    },
+    "ConsensusResult": {
+      "additionalProperties": false,
+      "description": "Point-in-time EPS consensus for one security and fiscal period.",
+      "properties": {
+        "as_of": {
+          "description": "Estimates known at this instant (UTC).",
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "basis": {
+          "enum": [
+            "adjusted",
+            "unadjusted"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "contributors": {
+          "items": {
+            "$ref": "#/$defs/Contributor"
+          },
+          "title": "Contributors",
+          "type": "array"
+        },
+        "contributors_total": {
+          "title": "Contributors Total",
+          "type": "integer"
+        },
+        "corporate_actions_applied": {
+          "items": {
+            "$ref": "#/$defs/CorporateAction"
+          },
+          "title": "Corporate Actions Applied",
+          "type": "array"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "excluded": {
+          "items": {
+            "$ref": "#/$defs/Exclusion"
+          },
+          "title": "Excluded",
+          "type": "array"
+        },
+        "excluded_total": {
+          "title": "Excluded Total",
+          "type": "integer"
+        },
+        "fiscal_period": {
+          "description": "Fixed fiscal-year label, e.g. FY2025.",
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "High"
+        },
+        "insufficient": {
+          "description": "True when fewer than 3 estimates qualify.",
+          "title": "Insufficient",
+          "type": "boolean"
+        },
+        "known_as_of": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Corporate-action knowledge cutoff. None means everything known today.",
+          "title": "Known As Of"
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Low"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mean"
+        },
+        "median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "metric": {
+          "const": "EPS",
+          "default": "EPS",
+          "title": "Metric",
+          "type": "string"
+        },
+        "requested_period": {
+          "description": "Label as requested (may be FY1/FY2).",
+          "title": "Requested Period",
+          "type": "string"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRef"
+        },
+        "stdev": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sample standard deviation (n-1).",
+          "title": "Stdev"
+        },
+        "synthetic_estimates": {
+          "default": true,
+          "description": "Analyst estimates in this demo are synthetic; actuals and corporate actions are real.",
+          "title": "Synthetic Estimates",
+          "type": "boolean"
+        },
+        "target_basis": {
+          "description": "Plain-language description of the share basis.",
+          "title": "Target Basis",
+          "type": "string"
+        },
+        "target_basis_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Share basis of the returned values. None means the latest known basis.",
+          "title": "Target Basis Date"
+        },
+        "versions": {
+          "$ref": "#/$defs/Versions"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "security",
+        "fiscal_period",
+        "requested_period",
+        "as_of",
+        "known_as_of",
+        "basis",
+        "target_basis_date",
+        "target_basis",
+        "mean",
+        "median",
+        "high",
+        "low",
+        "stdev",
+        "count",
+        "insufficient",
+        "contributors",
+        "contributors_total",
+        "excluded",
+        "excluded_total",
+        "corporate_actions_applied",
+        "warnings",
+        "method",
+        "versions"
+      ],
+      "title": "ConsensusResult",
+      "type": "object"
+    },
+    "ConsensusSeries": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "adjusted",
+            "unadjusted"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "fiscal_period": {
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "known_as_of": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Known As Of"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/ConsensusPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRef"
+        }
+      },
+      "required": [
+        "security",
+        "fiscal_period",
+        "basis",
+        "known_as_of",
+        "points"
+      ],
+      "title": "ConsensusSeries",
+      "type": "object"
+    },
+    "Contributor": {
+      "additionalProperties": false,
+      "description": "One estimate that went into the consensus, with its basis decision.",
+      "properties": {
+        "basis_date": {
+          "description": "Date whose share count the raw value is on.",
+          "format": "date",
+          "title": "Basis Date",
+          "type": "string"
+        },
+        "basis_inferred": {
+          "description": "True when the basis was a fallback guess.",
+          "title": "Basis Inferred",
+          "type": "boolean"
+        },
+        "basis_source": {
+          "description": "flagged: source supplied the basis; ratio_inferred: matched the broker's prior estimate divided by the split ratio; date_fallback: guessed from entry date near a split; entry_date: no split nearby, so the entry date is the basis.",
+          "enum": [
+            "flagged",
+            "ratio_inferred",
+            "date_fallback",
+            "entry_date"
+          ],
+          "title": "Basis Source",
+          "type": "string"
+        },
+        "broker_id": {
+          "title": "Broker Id",
+          "type": "string"
+        },
+        "entered_at": {
+          "format": "date-time",
+          "title": "Entered At",
+          "type": "string"
+        },
+        "estimate_id": {
+          "title": "Estimate Id",
+          "type": "string"
+        },
+        "factor": {
+          "description": "Cumulative share factor from basis_date to the target.",
+          "title": "Factor",
+          "type": "number"
+        },
+        "raw_value": {
+          "description": "Value as published, on its own share basis.",
+          "title": "Raw Value",
+          "type": "number"
+        },
+        "value": {
+          "description": "raw_value / factor: the value on the target basis.",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "estimate_id",
+        "broker_id",
+        "entered_at",
+        "raw_value",
+        "basis_date",
+        "basis_source",
+        "basis_inferred",
+        "factor",
+        "value"
+      ],
+      "title": "Contributor",
+      "type": "object"
+    },
+    "CorporateAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_type": {
+          "enum": [
+            "SPLIT",
+            "REVERSE_SPLIT",
+            "SPINOFF",
+            "DELISTING"
+          ],
+          "title": "Action Type",
+          "type": "string"
+        },
+        "ex_date": {
+          "description": "First trading day on the new basis.",
+          "format": "date",
+          "title": "Ex Date",
+          "type": "string"
+        },
+        "known_at": {
+          "description": "When the action became public (UTC).",
+          "format": "date-time",
+          "title": "Known At",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "ratio": {
+          "description": "New shares per old share (10.0 for 10-for-1, 0.125 for 1-for-8). 1.0 when the share count does not change.",
+          "title": "Ratio",
+          "type": "number"
+        },
+        "record_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Record Date"
+        },
+        "security_id": {
+          "title": "Security Id",
+          "type": "string"
+        },
+        "source_url": {
+          "description": "Primary source (SEC filing or regulator release).",
+          "title": "Source Url",
+          "type": "string"
+        },
+        "terms": {
+          "title": "Terms",
+          "type": "string"
+        },
+        "ticker": {
+          "description": "Ticker at the time of the action.",
+          "title": "Ticker",
+          "type": "string"
+        }
+      },
+      "required": [
+        "security_id",
+        "ticker",
+        "action_type",
+        "known_at",
+        "record_date",
+        "ex_date",
+        "ratio",
+        "terms",
+        "source_url"
+      ],
+      "title": "CorporateAction",
+      "type": "object"
+    },
+    "CorporateActionList": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/CorporateAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRef"
+        }
+      },
+      "required": [
+        "security",
+        "actions"
+      ],
+      "title": "CorporateActionList",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "NotFound",
+            "InsufficientEstimates",
+            "InvalidRequest"
+          ],
+          "title": "Error",
+          "type": "string"
+        },
+        "hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hint"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error",
+        "message"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "Exclusion": {
+      "additionalProperties": false,
+      "properties": {
+        "broker_id": {
+          "title": "Broker Id",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "entered_at": {
+          "format": "date-time",
+          "title": "Entered At",
+          "type": "string"
+        },
+        "estimate_id": {
+          "title": "Estimate Id",
+          "type": "string"
+        },
+        "raw_value": {
+          "title": "Raw Value",
+          "type": "number"
+        },
+        "reason": {
+          "enum": [
+            "stale",
+            "not_reconfirmed_after_report",
+            "pre_spinoff_perimeter",
+            "outlier"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "estimate_id",
+        "broker_id",
+        "entered_at",
+        "raw_value",
+        "reason",
+        "detail"
+      ],
+      "title": "Exclusion",
+      "type": "object"
+    },
+    "RevisionSignal": {
+      "additionalProperties": false,
+      "description": "Per-broker revisions over a lookback window, comparing like with like.",
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "brokers_compared": {
+          "title": "Brokers Compared",
+          "type": "integer"
+        },
+        "down": {
+          "title": "Down",
+          "type": "integer"
+        },
+        "fiscal_period": {
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "lookback_days": {
+          "title": "Lookback Days",
+          "type": "integer"
+        },
+        "mean_pct_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mean Pct Change"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRef"
+        },
+        "unchanged": {
+          "title": "Unchanged",
+          "type": "integer"
+        },
+        "up": {
+          "title": "Up",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "security",
+        "fiscal_period",
+        "as_of",
+        "lookback_days",
+        "brokers_compared",
+        "up",
+        "down",
+        "unchanged",
+        "mean_pct_change"
+      ],
+      "title": "RevisionSignal",
+      "type": "object"
+    },
+    "SecurityRef": {
+      "additionalProperties": false,
+      "properties": {
+        "cik": {
+          "description": "SEC Central Index Key, zero-padded to 10 digits.",
+          "title": "Cik",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "security_id": {
+          "description": "Permanent identifier, e.g. SEC-0001. Never reused.",
+          "title": "Security Id",
+          "type": "string"
+        },
+        "ticker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Ticker in use on the as-of date, if any.",
+          "title": "Ticker"
+        }
+      },
+      "required": [
+        "security_id",
+        "ticker",
+        "name",
+        "cik"
+      ],
+      "title": "SecurityRef",
+      "type": "object"
+    },
+    "Versions": {
+      "additionalProperties": false,
+      "properties": {
+        "estimates": {
+          "title": "Estimates",
+          "type": "integer"
+        },
+        "factors": {
+          "title": "Factors",
+          "type": "integer"
+        },
+        "fn": {
+          "title": "Fn",
+          "type": "string"
+        },
+        "reports": {
+          "title": "Reports",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "estimates",
+        "factors",
+        "reports",
+        "fn"
+      ],
+      "title": "Versions",
+      "type": "object"
+    }
+  },
+  "description": "Boundary types for the point-in-time consensus demo. Generated from src/pitdemo/schemas.py; do not edit by hand.",
+  "title": "pitdemo API"
+}

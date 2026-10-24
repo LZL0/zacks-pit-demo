@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+*.duckdb
+*.duckdb.wal
+data/raw/prices/
+node_modules/
+sdk/ts/dist/
+.DS_Store

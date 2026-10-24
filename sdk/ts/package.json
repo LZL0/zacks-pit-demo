@@ -1,0 +1,20 @@
+{
+  "name": "pitdemo-sdk",
+  "version": "0.1.0",
+  "description": "Typed TypeScript client for the point-in-time consensus demo API. Zod schemas generated from ../schema.json.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "gen": "node scripts/gen.mjs",
+    "build": "tsc -p tsconfig.json",
+    "check": "npm run gen && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "json-schema-to-zod": "2.8.1",
+    "typescript": "~5.9.3"
+  }
+}

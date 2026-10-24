@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sdk/ts/package-lock.json
+
+      - name: Install
+        run: |
+          uv sync --locked
+          npm ci --prefix sdk/ts --no-audit --no-fund
+
+      - name: Lint
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      - name: Type-check
+        run: |
+          uv run mypy src --strict
+          uv run mypy --strict sdk/python/pitdemo_sdk
+          npm run --prefix sdk/ts build
+
+      # Tests run offline against the committed raw data (EDGAR JSON, corporate actions)
+      # and the committed synthetic estimates. They include the SDK drift checks.
+      - name: Test
+        run: uv run pytest
+
+      - name: SDKs match the schema (regenerate and diff)
+        run: |
+          uv run demo sdk
+          git diff --exit-code -- sdk/
