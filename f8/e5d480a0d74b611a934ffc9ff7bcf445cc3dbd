@@ -1,0 +1,87 @@
+docs/methodology.md
+  s_616c21e0e702ed::t_c64302892d5952 19,33,39,48
+  s_616c21e0e702ed::t_43756064ec238d 81
+  s_616c21e0e702ed::t_8b8e7d381feaca 43
+  s_616c21e0e702ed::t_7c2828aae03b38 13,55-57
+src/pitdemo/periods.py
+  s_616c21e0e702ed::t_6710d5b19e9a9d 125,129-130,133-135,138-140
+README.md
+  s_616c21e0e702ed::t_7c2828aae03b38 5,26,47
+src/pitdemo/transforms/cache.py
+  s_616c21e0e702ed::t_80f051ce9dfb80 29-31,36-37
+src/pitdemo/transforms/consensus.py
+  s_616c21e0e702ed::t_b86d0cb3254b5a 260-264,281,286-288
+tests/test_serving.py
+  s_616c21e0e702ed::t_9638b7a270260e 146-196
+sdk/ts/src/client.ts
+  s_616c21e0e702ed::t_c5f172815f2f10 22,26-27,29,34-41,52-57
+PLAN.md
+  s_616c21e0e702ed::t_c64302892d5952 241-249
+.claude/skills/query-pit-consensus/SKILL.md
+  s_616c21e0e702ed::t_7c2828aae03b38 51-57
+sdk/ts/src/schemas.ts
+  s_616c21e0e702ed::t_45c972df64b317 4
+tests/golden/test_restatement.py
+  s_616c21e0e702ed::t_45c972df64b317 29-31,37-39
+tests/test_data_layer.py
+  s_616c21e0e702ed::t_6e40cc97c51a1c 59-64
+  s_616c21e0e702ed::t_45c972df64b317 72-74
+  s_616c21e0e702ed::t_9638b7a270260e 120-175
+tests/golden/test_fy_roll.py
+  s_616c21e0e702ed::t_9638b7a270260e 77-98
+  s_616c21e0e702ed::t_45c972df64b317 4,25-26,50,52,58
+src/pitdemo/transforms/basis.py
+  s_616c21e0e702ed::t_2d7fb4b7da9b8a 11-19,108-111
+  s_616c21e0e702ed::t_01516c78c567d6 79-80,85-92,101-107,116,119,130-131,140-142,144-155,157-164,167,169-170,172,174-175,178,181-183,200,207
+  s_616c21e0e702ed::t_1ae172b6a7b5b3 28,156
+  s_616c21e0e702ed::t_c6078103f5662b 112-113
+sdk/python/pitdemo_sdk/models.py
+  s_616c21e0e702ed::t_45c972df64b317 59
+src/pitdemo/ingest/edgar.py
+  s_616c21e0e702ed::t_74af5078a9fdd4 24,133-135,137-154
+src/pitdemo/schemas.py
+  s_616c21e0e702ed::t_2d7fb4b7da9b8a 231-234
+tests/golden/test_basis_inference.py
+  s_616c21e0e702ed::t_509cebf0f1c4a4 1-41,45-53,57-99
+  s_616c21e0e702ed::t_9638b7a270260e 42-44,54-56
+sdk/schema.json
+  s_616c21e0e702ed::t_45c972df64b317 371
+data/raw/corporate_actions.csv
+  s_616c21e0e702ed::t_2088680c3bf4f0 2-10
+tests/helpers.py
+  s_616c21e0e702ed::t_8b8e7d381feaca 24
+tests/golden/test_stale_exclusion.py
+  s_616c21e0e702ed::t_13750662aa1aa1 91-92,95-101,103,109
+  s_616c21e0e702ed::t_9638b7a270260e 85-90,93-94,102,104-108,110-120
+tests/golden/test_split_known_as_of.py
+  s_616c21e0e702ed::t_8b8e7d381feaca 3,19
+src/pitdemo/ingest/synth.py
+  s_616c21e0e702ed::t_4839b8ef5d5108 312,338-346,351
+scripts/record/ask.py
+  s_616c21e0e702ed::t_f1603212482a12 75-87,121-122
+  s_616c21e0e702ed::t_8492e3031b4db5 1-31,34-35,38,40-74,88-108,110-117,119-120,123-127
+  s_616c21e0e702ed::t_90a095b568667c 32-33,36-37,39,109,118
+src/pitdemo/api/http.py
+  s_616c21e0e702ed::t_5d33367153a79c 11,30,67-78
+  s_616c21e0e702ed::t_188ab6f87d5f4e 79
+sdk/python/pitdemo_sdk/client.py
+  s_616c21e0e702ed::t_c5f172815f2f10 10,37,39-46,49,80-85
+src/pitdemo/service.py
+  s_616c21e0e702ed::t_80f051ce9dfb80 22,151-161,178-179,184-185,187-194,265-266,268-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f8e5d480a0d74b611a934ffc9ff7bcf445cc3dbd",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
