@@ -1,0 +1,31 @@
+.github/workflows/ci.yml
+  s_616c21e0e702ed::t_b06f8c5fb83a57 13,15-21,28,41-43,45,51,54,57-58,63,67-92
+README.md
+  s_616c21e0e702ed::t_5e63cd0a1312c9 82,94
+sdk/ts/scripts/smoke.mjs
+  s_616c21e0e702ed::t_fceb7be7d94bd1 1-5,9-14,16-24,26-48,50
+scripts/ci/smoke.py
+  s_616c21e0e702ed::t_034b7682f6cf6a 35-40,61-63,65-66,70-77,101-102,106-107,112
+  s_616c21e0e702ed::t_cfeb32d89fd015 1-34,41-60,64,67-69,78-100,103-105,108-111,113-146
+tests/test_docs_numbers.py
+  s_616c21e0e702ed::t_60de96de07681b 1-9,11-44,48-61,69-81,84-111,113-121,123-135
+  s_616c21e0e702ed::t_abecd0e38a0f3f 82-83,112
+  s_616c21e0e702ed::t_9ea4200a2687d6 45-47,62-68
+  s_616c21e0e702ed::t_034b7682f6cf6a 10,122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ac5252b7eedfd63502de50b60e88db8a160505e",
+  "prompts": {},
+  "sessions": {
+    "s_616c21e0e702ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8cf672b5-778b-4810-945c-3c9c9cc814b2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "LZL0 <12474488+LZL0@users.noreply.github.com>"
+    }
+  }
+}
