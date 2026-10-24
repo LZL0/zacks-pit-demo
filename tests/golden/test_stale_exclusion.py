@@ -82,3 +82,39 @@ def test_outlier_excluded_after_basis_conversion() -> None:
     assert [x.broker_id for x in r.excluded] == ["E"]
     assert r.excluded[0].reason == "outlier"
     assert r.mean == pytest.approx(10.05)
+
+
+def test_lapsed_estimates_stay_out_during_the_next_grace_window() -> None:
+    """An estimate that lapsed after release 1 must not return during release 2's grace.
+
+    (Found by review: the rule used only the latest release, so for 7 days after every
+    release, estimates already excluded for the previous one came back.) OLD is young
+    enough that the 120-day staleness rule cannot be what excludes it.
+    """
+    rows = [
+        est("A", 10.0, "2024-01-20"),
+        est("B", 11.0, "2024-01-20"),
+        est("C", 12.0, "2024-01-20"),
+        est("OLD", 20.0, "2024-02-15"),
+        est("A", 10.5, "2024-03-04"),
+        est("B", 11.5, "2024-03-04"),
+        est("C", 12.5, "2024-03-04"),
+    ]
+    r1 = dt.datetime(2024, 3, 1, 21, 0)
+    r2 = dt.datetime(2024, 5, 1, 21, 0)
+    store = make_store(rows, reports=[(NVDA, r1), (NVDA, r2)])
+    for day in (dt.date(2024, 4, 30), dt.date(2024, 5, 3), dt.date(2024, 5, 7)):
+        r = consensus(store, NVDA, "FY2025", day)
+        assert "OLD" not in {c.broker_id for c in r.contributors}, day
+        assert [x.reason for x in r.excluded] == ["not_reconfirmed_after_report"], day
+        assert r.mean == pytest.approx(11.5), day
+    # Once release 2's grace period is over, A/B/C lapse too.
+    after = consensus(store, NVDA, "FY2025", dt.date(2024, 5, 9))
+    assert after.insufficient
+
+
+def test_reported_period_does_not_resurface(full_store: Store) -> None:
+    """NVDA FY2024 was reported in Feb 2024; its stale estimates stay out for good."""
+    for day in (dt.date(2024, 5, 20), dt.date(2024, 5, 24), dt.date(2024, 5, 31)):
+        r = consensus(full_store, NVDA, "FY2024", day)
+        assert r.count == 0, day

@@ -26,15 +26,17 @@ def test_both_versions_are_stored(full_store: Store) -> None:
     first = rows.row(0, named=True)
     assert first["value"] == 11.93
     assert first["accession"] == "0001045810-24-000029"
-    # Knowledge time is the SEC acceptance timestamp (UTC), not just the filing date.
-    assert first["filed_at"] == dt.datetime(2024, 2, 22, 2, 36, 57)
+    # Knowledge time is the SEC acceptance timestamp in UTC, not just the filing date.
+    # Header: ACCEPTANCE-DATETIME 20240221163657 (New York) = 21:36:57 UTC.
+    assert first["filed_at"] == dt.datetime(2024, 2, 21, 21, 36, 57)
     assert rows.row(-1, named=True)["value"] == 1.19
 
 
 def test_pit_query_before_restating_filing_returns_original(full_store: Store) -> None:
     assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2024, 3, 1)) == 11.93
-    assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2025, 2, 27, 2, 48, 32)) == 11.93
-    assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2025, 2, 27, 2, 48, 33)) == 1.19
+    # The FY2025 10-K restated FY2024; accepted 2025-02-26 16:48:33 New York = 21:48:33 UTC.
+    assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2025, 2, 26, 21, 48, 32)) == 11.93
+    assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2025, 2, 26, 21, 48, 33)) == 1.19
     assert full_store.actual_as_of(NVDA, "FY2024", dt.datetime(2024, 2, 1)) is None
 
 

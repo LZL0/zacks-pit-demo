@@ -238,3 +238,12 @@ The repo is public, CI is green, the README shows the chart and the recording ab
 - **Cache key includes `known_as_of`** and a reports version, as well as estimates/factors versions.
 - **Prices are not committed** (third-party data); they are fetched only to cross-check split dates.
 - **API timestamps are explicit UTC** (`...Z`) on the wire; internally all timestamps are naive UTC.
+
+### Fixes after an independent review (2026-10-24)
+
+- **SEC timestamps**: the submissions API's `acceptanceDateTime` is shifted by the Eastern offset despite its `Z`; all knowledge times were 4–5h late. Now converted to true UTC (checked against filing headers); corporate-action `known_at` values recomputed.
+- **Re-confirmation rule**: estimates that lapsed after one release came back during the next release's grace window. The cutoff is now the latest release whose grace period has ended.
+- **FY1/FY2 roll warning** used release dates after `as_of`. It now uses only known releases plus the fiscal calendar.
+- **Basis inference**: tolerance capped below half the gap between share regimes (3-for-2 splits); all pending splits considered, not just the latest; a guess inherited from a guessed prior is flagged as a guess.
+- **Errors**: `/revisions` resolves FY1/FY2 and validates input; FastAPI validation errors return typed 400 `InvalidRequest`; both SDKs raise their own error type even for untyped error bodies.
+- Each fix has a regression test that fails on the previous code.

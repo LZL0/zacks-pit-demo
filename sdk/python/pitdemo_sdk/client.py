@@ -7,7 +7,7 @@ from typing import Literal, TypeVar
 
 import httpx
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from pitdemo_sdk.models import (
     AdjustmentExplanation,
@@ -34,12 +34,19 @@ SERIES_SCHEMA: dict[str, pl.DataType] = {
 
 
 class PitApiError(Exception):
-    """The API returned a typed error (NotFound, InsufficientEstimates, InvalidRequest)."""
+    """The API returned an error.
 
-    def __init__(self, status: int, error: ErrorResponse) -> None:
-        super().__init__(f"{status} {error.error.value}: {error.message}")
+    ``error`` is the typed body (NotFound, InsufficientEstimates, InvalidRequest) when
+    the server sent one; for anything else (a proxy's HTML 502, say) it is ``None`` and
+    ``body`` holds the raw text.
+    """
+
+    def __init__(self, status: int, error: ErrorResponse | None, body: str = "") -> None:
+        detail = f"{error.error.value}: {error.message}" if error else body[:200]
+        super().__init__(f"{status} {detail}")
         self.status = status
         self.error = error
+        self.body = body
 
 
 def _iso(value: str | dt.date | None) -> str | None:
@@ -70,8 +77,12 @@ class PitClient:
     def _get(self, path: str, model: type[M], params: dict[str, str | int | None]) -> M:
         resp = self._http.get(path, params={k: v for k, v in params.items() if v is not None})
         if resp.status_code >= 400:
-            raise PitApiError(resp.status_code, ErrorResponse.model_validate(resp.json()))
-        return model.model_validate(resp.json())
+            try:
+                typed: ErrorResponse | None = ErrorResponse.model_validate_json(resp.content)
+            except ValidationError:
+                typed = None
+            raise PitApiError(resp.status_code, typed, resp.text)
+        return model.model_validate_json(resp.content)
 
     def consensus(
         self,

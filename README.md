@@ -2,7 +2,7 @@
 
 **Point-in-time analyst consensus that survives a stock split, with per-estimate share-basis handling, tests pinned to real SEC data, and delivery to people (Python/TS SDKs) and agents (MCP).**
 
-![NVIDIA FY2025 EPS consensus around the June 2024 10-for-1 split: a naive average falls 90%, an entry-date adjustment spikes to $9.76, the per-estimate pipeline stays flat at about $2.55](docs/nvda_consensus.png)
+![NVIDIA FY2025 EPS consensus around the June 2024 10-for-1 split: a naive average falls 90%, an entry-date adjustment spikes to $9.70, the per-estimate pipeline stays flat at about $2.5](docs/nvda_consensus.png)
 
 <!-- 60-second recording: Claude answering the NVDA question over MCP, then explain_adjustment. Add the link here. -->
 
@@ -23,7 +23,7 @@ Ask Claude, with this repo open in Claude Code (`.mcp.json` registers the server
 
 > What was NVDA's FY2025 EPS consensus on 2024-05-31, split-adjusted?
 
-It calls `get_consensus` and gets **$2.548**: the mean of 8 estimates, as of 2024-05-31 23:59:59 UTC, on the post-split share basis. Each estimate's basis is resolved individually; one estimate was excluded for not being re-confirmed after the 2024-05-22 earnings release. On that day's own share basis (`basis="unadjusted"`) the same consensus is $25.48.
+It calls `get_consensus` and gets **$2.494**: the mean of 9 estimates, as of 2024-05-31 23:59:59 UTC, on the post-split share basis. Every one of them was published on the pre-split basis (the split was announced 2024-05-22 and took effect 2024-06-10), and each estimate's basis is resolved individually. On that day's own share basis (`basis="unadjusted"`) the same consensus is $24.94.
 
 <details>
 <summary>Claude Desktop config</summary>
@@ -44,7 +44,7 @@ It calls `get_consensus` and gets **$2.548**: the mean of 8 estimates, as of 202
 
 | Case | What goes wrong naively | What this does | Test |
 |---|---|---|---|
-| NVDA 10-for-1 (ex 2024-06-10) | Brokers restate on different days; the raw average falls 90%, and adjusting by entry date spikes to $9.76 | Resolves each estimate's share basis (flagged, ratio-inferred, or flagged as a guess) | `test_nvda_mixed_basis.py` |
+| NVDA 10-for-1 (ex 2024-06-10) | Brokers restate on different days; the raw average falls 90%, and adjusting by entry date spikes to $9.70 | Resolves each estimate's share basis (flagged, ratio-inferred, or flagged as a guess) | `test_nvda_mixed_basis.py` |
 | Split not yet announced | Applying today's factors to a past query leaks the future | Factors apply only once `known_at ≤ known_as_of` (SEC acceptance time) | `test_split_known_as_of.py` |
 | Broker drops coverage | Consensus moves on composition alone | Revision signal compares each broker with itself | `test_broker_drop.py` |
 | Stale and un-reconfirmed estimates | Old numbers linger in the average | 120-day staleness and post-earnings re-confirmation, with reasons returned | `test_stale_exclusion.py` |

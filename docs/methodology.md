@@ -10,13 +10,13 @@ Every rule below is implemented in `src/pitdemo/transforms/` and pinned by a tes
 | Diluted EPS actuals, every filing including restatements | SEC EDGAR `companyfacts` (`us-gaap:EarningsPerShareDiluted`) | Real |
 | Earnings-release times | SEC EDGAR filing index: 8-K item 2.02, acceptance timestamp | Real |
 | Splits, spin-offs, delisting | `data/raw/corporate_actions.csv`, every row citing an SEC filing or FDIC release | Real |
-| Analyst estimates (1,309 rows, 14 brokers) | `src/pitdemo/ingest/synth.py`, seed 42 | **Synthetic** |
+| Analyst estimates (1,321 rows, 14 brokers) | `src/pitdemo/ingest/synth.py`, seed 42 | **Synthetic** |
 
 Analyst estimates are licensed data, so the demo generates them. They are calibrated to converge on the real EDGAR actuals, revised after the real earnings releases, and every row carries `source = 'SYNTHETIC'`.
 
 ## Storage: bitemporal and append-only
 
-* **Two clocks.** Estimates carry `entered_at` (when we learned of them). Corporate actions carry `known_at` (announcement, taken from the SEC acceptance timestamp) and `ex_date` (when they took effect). Actuals carry `filed_at` (acceptance timestamp of the filing). When only a date is known, the time is set to 23:59:59 that day, so a fact can never leak into an earlier query.
+* **Two clocks.** Estimates carry `entered_at` (when we learned of them). Corporate actions carry `known_at` (announcement, taken from the SEC acceptance timestamp) and `ex_date` (when they took effect). Actuals carry `filed_at` (acceptance timestamp of the filing). SEC's submissions API marks acceptance times with a `Z` but shifts them by the Eastern-time offset; they are converted to true UTC and checked against filing headers. When only a date is known, the time is set to 23:59:59 that day, so a fact can never leak into an earlier query.
 * **Nothing is updated.** A revision is a new row. `superseded_at` is derived in a view (the broker's next `entered_at`), not stored. Restated actuals are new rows: NVIDIA's FY2024 EPS is in the store as both $11.93 (10-K, Feb 2024) and $1.19 (10-K, Feb 2025), and a query sees whichever was filed by its cutoff.
 * **Permanent IDs.** Everything keys on `security_id`. Tickers are resolved as of the query date (`SIVB` until 2023-03-27, `SIVBQ` after), and a delisted security stays in history.
 
@@ -30,31 +30,31 @@ Analyst estimates are licensed data, so the demo generates them. They are calibr
    * `unadjusted`: the share basis in effect at `as_of`, which is what a screen showed that day.
 3. **Exclusions**, each returned with a reason:
    * *stale*: entered more than 120 days before `as_of`;
-   * *not re-confirmed*: entered before the company's latest earnings release and not revised or re-confirmed within 7 days of it;
+   * *not re-confirmed*: entered before an earnings release whose 7-day grace period has ended, and not revised or re-confirmed since. During a new release's grace period, the previous release still applies, so lapsed estimates can't come back;
    * *pre-spin-off perimeter*: see below;
    * *outlier*: with at least 5 estimates, more than 5 robust standard deviations (MAD-based) from the median *and* more than 25% away from it. This runs **after** basis conversion, so a 10× basis error is caught rather than averaged in.
 4. **At least 3 contributors**, otherwise `insufficient = true` and no statistics.
 5. **Output**: mean, median, high, low, sample standard deviation and count, plus every contributor with its basis decision, every exclusion with its reason, the corporate actions applied (with source URLs), warnings, and the data versions used.
 
-Fiscal periods are fixed labels (`FY2025`). `FY1` and `FY2` are accepted but resolved to a fixed label at query time. FY1 rolls at the earnings release that reports the prior year. Answers near a roll carry a warning, and series endpoints only accept fixed labels.
+Fiscal periods are fixed labels (`FY2025`). `FY1` and `FY2` are accepted but resolved to a fixed label at query time. FY1 rolls at the earnings release that reports the prior year. Answers near a roll carry a warning: just after it, or once FY1's year has ended but isn't reported yet. The warning uses only what was known at `as_of`. Series endpoints only accept fixed labels.
 
 ## Corporate actions
 
-**Splits are factors, applied with knowledge time.** `cumulative_factor(from, to, known_as_of)` multiplies the ratios of splits with `from < ex_date ≤ to` that were announced by `known_as_of`. Adjustment is backward: today's values never change, and history is restated to today's share count. With `known_as_of` before NVIDIA's 8-K of 2024-05-23 00:21 UTC, no factor applies.
+**Splits are factors, applied with knowledge time.** `cumulative_factor(from, to, known_as_of)` multiplies the ratios of splits with `from < ex_date ≤ to` that were announced by `known_as_of`. Adjustment is backward: today's values never change, and history is restated to today's share count. With `known_as_of` before NVIDIA's 8-K of 2024-05-22 20:21 UTC (16:21 New York), no factor applies.
 
 **The basis is decided per estimate, not per date.** Around NVIDIA's 10-for-1 split (ex-date 2024-06-10), brokers restated on their own schedules: some published post-split numbers days *before* the ex-date, others kept publishing pre-split numbers for a week or two *after* it. So each estimate gets its own decision:
 
 1. **flagged**: the source supplied a share-basis date. Use it.
-2. **ratio-inferred**: entered while a split was pending or recent (from announcement to 30 days after the ex-date). Compare the estimate with the same broker's previous one on both candidate bases, and pick the basis it is within 25% of.
+2. **ratio-inferred**: entered while one or more splits were pending or recent (from announcement to 30 days after the ex-date). Restate the same broker's previous estimate onto each candidate share regime and pick the one the new value is closest to. The revision must be under 25%, and under 40% of the gap between neighbouring regimes, so a 3-for-2 split can't be mistaken for a 20% cut. If the previous estimate's basis was itself a guess, the new one is flagged as a guess too.
 3. **date fallback**: no usable prior. Assume the basis from entry date vs. ex-date and flag it `basis_inferred = true`.
 
 The chart shows what this buys on the synthetic NVDA data:
 
 | as of | this pipeline | naive average | adjust by entry date |
 |---|---|---|---|
-| 2024-05-31 | $2.548 | $25.21 | $2.52 |
-| 2024-06-14 | $2.551 | $12.87 | $9.76 |
-| 2024-07-31 | $2.591 | $2.59 | $2.59 |
+| 2024-05-31 | $2.494 | $24.94 | $2.49 |
+| 2024-06-14 | $2.575 | $12.79 | $9.70 |
+| 2024-07-31 | $2.566 | $2.57 | $2.57 |
 
 The naive average shows a fake 90% collapse. The entry-date shortcut looks fine at both ends, but in between it divides early restaters twice and leaves laggards undivided.
 
@@ -78,4 +78,4 @@ The naive average shows a fake 90% collapse. The entry-date shortcut looks fine 
 
 ## Known limits
 
-Synthetic estimates; one metric (GAAP diluted EPS, annual); five securities; ex-dates taken from the issuers' announcements (GE's 2023 ex-date is corroborated by the price source, not an exchange notice); SIVBQ's OTC start date comes from secondary press.
+Synthetic estimates; one metric (GAAP diluted EPS, annual); five securities; one price source for the split cross-check. Ex-dates come from issuer filings, except GE's 2023 ex-distribution date, which comes from the OCC memo relaying NYSE's notice, and SIVBQ's OTC dates, which come from FINRA's OTC Daily List.

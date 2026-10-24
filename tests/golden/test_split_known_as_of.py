@@ -1,6 +1,6 @@
 """Corporate actions only apply once they are known.
 
-NVDA announced its 10-for-1 split in the 8-K accepted 2024-05-23 00:21:29 UTC.
+NVDA announced its 10-for-1 split in the 8-K accepted 2024-05-22 20:21:29 UTC (16:21:29 New York).
 With ``known_as_of`` before that, the adjusted consensus on 2024-05-31 must apply
 no factor. With full knowledge, the same estimates restate to post-split values.
 """
@@ -16,7 +16,7 @@ from pitdemo.transforms.consensus import consensus
 from pitdemo.transforms.factors import LATEST, cumulative_factor, factors_from_frame
 from tests.helpers import NVDA, NVDA_SPLIT, est, make_store
 
-ANNOUNCED = dt.datetime(2024, 5, 23, 0, 21, 29)
+ANNOUNCED = dt.datetime(2024, 5, 22, 20, 21, 29)
 
 
 @pytest.fixture

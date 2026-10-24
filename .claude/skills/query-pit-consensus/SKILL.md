@@ -48,7 +48,10 @@ User: "What was NVDA's FY2025 EPS consensus on 2024-05-31, split-adjusted?"
 
 Call `get_consensus(ticker="NVDA", fiscal_period="FY2025", as_of="2024-05-31", basis="adjusted")`, then answer like:
 
-> $2.55 (mean of 8 estimates, synthetic data) as of 2024-05-31, on the post-split share
-> basis (after the 10-for-1 split, ex-date 2024-06-10). On that day's own share basis
-> it was $25.48. One estimate was excluded because it was not re-confirmed after the
-> 2024-05-22 earnings release.
+> USD 2.49 (mean of 9 estimates, synthetic data) as of 2024-05-31, on the post-split share
+> basis (after the 10-for-1 split, ex-date 2024-06-10, announced 2024-05-22). On that
+> day's own share basis it was USD 24.94: every estimate was still published pre-split
+> and is divided by 10 here.
+
+Write amounts as "USD 2.49", not with a dollar sign followed by a digit: skill text
+substitutes positional arguments into that pattern.

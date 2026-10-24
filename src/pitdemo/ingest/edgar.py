@@ -21,6 +21,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 import httpx
 import polars as pl
@@ -129,9 +130,28 @@ def load_raw(raw_dir: Path, cik: int) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(raw_path(raw_dir, cik).read_text()))
 
 
+NEW_YORK = ZoneInfo("America/New_York")
+
+
 def parse_acceptance(value: str) -> dt.datetime:
-    """'2024-05-23T00:21:29.000Z' -> naive UTC datetime."""
-    return dt.datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
+    """SEC ``acceptanceDateTime`` -> true UTC (naive).
+
+    Despite the trailing ``Z``, the submissions API's value is *not* UTC: it is the
+    true UTC instant shifted forward by the Eastern-time offset (+4h in summer, +5h
+    in winter). Checked against filing headers, e.g. NVIDIA's 8-K
+    0001045810-24-000113: header ``ACCEPTANCE-DATETIME 20240522162129`` (16:21:29 New
+    York = 20:21:29 UTC), JSON ``2024-05-23T00:21:29.000Z``.
+
+    So subtract the Eastern offset, choosing the one that is consistent with the
+    resulting UTC instant (this also handles DST changeover days).
+    """
+    shifted = dt.datetime.fromisoformat(value.replace("Z", "")).replace(tzinfo=None)
+    for hours in (4, 5):
+        utc = shifted - dt.timedelta(hours=hours)
+        offset = utc.replace(tzinfo=dt.UTC).astimezone(NEW_YORK).utcoffset()
+        if offset == dt.timedelta(hours=-hours):
+            return utc
+    return shifted - dt.timedelta(hours=5)  # unreachable for real dates; be conservative
 
 
 def end_of_day(day: dt.date) -> dt.datetime:

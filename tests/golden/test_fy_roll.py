@@ -1,7 +1,7 @@
 """Fixed fiscal labels never jump; relative labels (FY1) roll and are flagged.
 
 NVIDIA released FY2024 results on 2024-02-21 after the close (8-K accepted
-2024-02-22 ~02:22 UTC). That release rolls FY1 from FY2024 to FY2025.
+16:22:09 New York = 21:22:09 UTC). That release rolls FY1 from FY2024 to FY2025.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ NVDA = "SEC-0001"
 def test_fy1_resolves_and_rolls_at_the_release(full_store: Store) -> None:
     reports = full_store.report_times(NVDA)
     rule = FiscalYearEnd(month=1, weekday=6)
-    before = resolve_period("FY1", rule, dt.datetime(2024, 2, 21, 20, 0), reports)
-    after = resolve_period("FY1", rule, dt.datetime(2024, 2, 22, 12, 0), reports)
+    before = resolve_period("FY1", rule, dt.datetime(2024, 2, 21, 21, 22, 8), reports)
+    after = resolve_period("FY1", rule, dt.datetime(2024, 2, 21, 21, 22, 9), reports)
     assert before.fiscal_period == "FY2024"
     assert after.fiscal_period == "FY2025"
     assert resolve_period("FY2", rule, dt.datetime(2024, 2, 22, 12, 0), reports).fiscal_period == (
@@ -47,15 +47,15 @@ def test_fixed_label_passes_through(full_store: Store) -> None:
 
 
 def test_relative_series_jumps_fixed_series_does_not(service: Service) -> None:
-    fy1_before = service.get_consensus("NVDA", "FY1", "2024-02-21")
+    fy1_before = service.get_consensus("NVDA", "FY1", "2024-02-20")
     fy1_after = service.get_consensus("NVDA", "FY1", "2024-02-23")
-    fixed_before = service.get_consensus("NVDA", "FY2025", "2024-02-21")
+    fixed_before = service.get_consensus("NVDA", "FY2025", "2024-02-20")
     fixed_after = service.get_consensus("NVDA", "FY2025", "2024-02-23")
     assert fy1_before.fiscal_period == "FY2024"
     assert fy1_after.fiscal_period == "FY2025"
     assert fixed_before.fiscal_period == fixed_after.fiscal_period == "FY2025"
     # FY1 is literally the FY2024 consensus, then the FY2025 one.
-    assert fy1_before.mean == service.get_consensus("NVDA", "FY2024", "2024-02-21").mean
+    assert fy1_before.mean == service.get_consensus("NVDA", "FY2024", "2024-02-20").mean
     assert fy1_after.mean == fixed_after.mean
     # ... so it jumps by the gap between two different years, and it says so.
     assert fy1_after.mean / fy1_before.mean > 1.5  # type: ignore[operator]
@@ -74,3 +74,25 @@ def test_fiscal_year_end_rules_match_edgar(sec: object, raw: RawData) -> None:
     for label, end in df.select("fiscal_period", "period_end").unique().rows():
         assert fiscal_label_for_period_end(end) == label
         assert sec.fye.end_of(int(label[2:])) == end, (sec.name, label, end)
+
+
+@pytest.mark.parametrize("label", ["FY1", "FY2"])
+def test_resolution_never_uses_future_releases(full_store: Store, label: str) -> None:
+    """Same answer (label, flag and note) whether or not later releases are in the store."""
+    reports = full_store.report_times(NVDA)
+    rule = FiscalYearEnd(month=1, weekday=6)
+    day = dt.datetime(2023, 9, 1)
+    while day < dt.datetime(2025, 4, 1):
+        known = [t for t in reports if t <= day]
+        assert resolve_period(label, rule, day, reports) == resolve_period(label, rule, day, known)
+        day += dt.timedelta(days=3)
+
+
+def test_pending_roll_is_flagged_from_the_calendar(full_store: Store) -> None:
+    rule = FiscalYearEnd(month=1, weekday=6)
+    r = resolve_period("FY1", rule, dt.datetime(2025, 2, 20), full_store.report_times(NVDA))
+    assert r.fiscal_period == "FY2025"
+    assert r.near_roll
+    assert r.note is not None
+    assert "ended 2025-01-26 and is not yet reported" in r.note
+    assert "2025-02-26" not in r.note  # the release date is not known on 2025-02-20

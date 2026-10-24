@@ -26,10 +26,15 @@ def cache_key(
     basis: Basis,
     known_as_of: dt.datetime | None,
     versions: Versions,
+    *,
+    requested_period: str | None = None,
+    max_items: int | None = None,
 ) -> str:
     payload = {
         "security_id": security_id,
         "period": period,
+        "requested_period": requested_period or period,
+        "max_items": max_items,
         "as_of": as_of.isoformat(),
         "basis": basis,
         "known_as_of": known_as_of.isoformat() if known_as_of else None,

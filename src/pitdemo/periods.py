@@ -120,24 +120,23 @@ def resolve_period(
     rolled_at = prior_reported if prior_reported is not None else None
     if rolled_at is None:
         rolled_at = annual_report_time(rule, prior - 1, known)
-    next_roll = annual_report_time(rule, fy1, report_times)
     near = False
     note = None
+    fy1_ended = rule.end_of(fy1) < as_of.date()
     if rolled_at is not None and (as_of - rolled_at).days <= ROLL_WARNING_DAYS:
         near = True
         note = (
-            f"{label} rolled to {fixed} on {rolled_at.date()} (prior year reported). "
-            f"A {label} time series jumps here; use the fixed label {fixed} "
+            f"{label} rolled to {fixed} on {rolled_at:%Y-%m-%d %H:%M} UTC (prior year "
+            f"reported). A {label} time series jumps here; use the fixed label {fixed} "
             "for a continuous series."
         )
-    elif (
-        next_roll is not None
-        and next_roll > as_of
-        and (next_roll - as_of).days <= ROLL_WARNING_DAYS
-    ):
+    elif fy1_ended:
+        # FY1's year is over but its results are not out yet, so the roll is pending.
+        # Only the calendar is used here: the release date is not known at as_of.
         near = True
         note = (
-            f"{label} rolls on {next_roll.date()}; a {label} series jumps there. "
-            f"Use the fixed label {fixed} for a continuous series."
+            f"FY{fy1} ended {rule.end_of(fy1)} and is not yet reported, so {label} will "
+            f"roll to FY{fy1 + 1 + offset} at the next earnings release. Use the fixed "
+            f"label {fixed} for a continuous series."
         )
     return ResolvedPeriod(label, fixed, rolled_at, near, note)

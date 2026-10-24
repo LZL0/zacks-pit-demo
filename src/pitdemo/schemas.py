@@ -228,7 +228,10 @@ class Contributor(Model):
         "prior estimate divided by the split ratio; date_fallback: guessed from entry date "
         "near a split; entry_date: no split nearby, so the entry date is the basis."
     )
-    basis_inferred: bool = Field(description="True when the basis was a fallback guess.")
+    basis_inferred: bool = Field(
+        description="True when the basis is a guess: a date fallback, or inferred from a "
+        "prior estimate whose own basis was a guess."
+    )
     factor: float = Field(description="Cumulative share factor from basis_date to the target.")
     value: float = Field(description="raw_value / factor: the value on the target basis.")
 

@@ -19,7 +19,7 @@ from pitdemo.ids import (
     spans_from_frame,
     universe,
 )
-from pitdemo.periods import is_relative, parse_fixed, resolve_period
+from pitdemo.periods import ResolvedPeriod, is_relative, parse_fixed, resolve_period
 from pitdemo.schemas import (
     AdjustmentExplanation,
     Basis,
@@ -148,6 +148,17 @@ class Service:
 
     # --------------------------------------------------------------- queries
 
+    def _resolve_period(
+        self, security_id: str, fiscal_period: str, instant: dt.datetime
+    ) -> ResolvedPeriod:
+        label = fiscal_period.strip().upper()
+        try:
+            return resolve_period(
+                label, master(security_id).fye, instant, self.store.report_times(security_id)
+            )
+        except ValueError as exc:
+            raise InvalidRequestError(str(exc), hint="Use FY2025-style labels or FY1/FY2.") from exc
+
     def get_consensus(
         self,
         ticker: str,
@@ -164,19 +175,23 @@ class Service:
         if basis not in ("adjusted", "unadjusted"):
             raise InvalidRequestError(f"basis must be 'adjusted' or 'unadjusted', got {basis!r}")
         sid = self._security(ticker, instant.date())
-        period = fiscal_period.strip().upper()
-        try:
-            resolved = resolve_period(
-                period, master(sid).fye, instant, self.store.report_times(sid)
-            )
-        except ValueError as exc:
-            raise InvalidRequestError(str(exc), hint="Use FY2025-style labels or FY1/FY2.") from exc
+        resolved = self._resolve_period(sid, fiscal_period, instant)
+        period = resolved.requested
         v = self.store.versions(sid)
         versions = Versions(
             estimates=v["estimates"], factors=v["factors"], reports=v["reports"], fn=FN_VERSION
         )
+        # The requested label and max_items change the response (warnings, list length),
+        # so they are part of the key alongside the resolved period.
         key = cache_key(
-            sid, f"{resolved.fiscal_period}|{period}|{max_items}", instant, basis, known, versions
+            sid,
+            resolved.fiscal_period,
+            instant,
+            basis,
+            known,
+            versions,
+            requested_period=period,
+            max_items=max_items,
         )
         warnings = [resolved.note] if resolved.note else []
         return self.cache.get_or_compute(
@@ -247,8 +262,11 @@ class Service:
     ) -> RevisionSignal:
         instant = parse_instant(as_of, "as_of")
         assert instant is not None
+        if not 1 <= lookback_days <= 365:
+            raise InvalidRequestError("lookback_days must be between 1 and 365")
         sid = self._security(ticker, instant.date())
-        return revision_signal(self.inputs(sid), fiscal_period.upper(), instant, lookback_days)
+        period = self._resolve_period(sid, fiscal_period, instant).fiscal_period
+        return revision_signal(self.inputs(sid), period, instant, lookback_days)
 
     def explain(
         self,

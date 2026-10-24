@@ -21,7 +21,7 @@ NVDA_SPLIT: dict[str, Any] = {
     "security_id": NVDA,
     "ticker": "NVDA",
     "action_type": "SPLIT",
-    "known_at": dt.datetime(2024, 5, 23, 0, 21, 29),
+    "known_at": dt.datetime(2024, 5, 22, 20, 21, 29),  # 8-K header: 16:21:29 New York
     "record_date": dt.date(2024, 6, 6),
     "ex_date": dt.date(2024, 6, 10),
     "ratio": 10.0,

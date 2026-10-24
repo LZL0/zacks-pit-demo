@@ -257,8 +257,11 @@ def compute_consensus(
 
     excluded: list[Exclusion] = []
     kept: list[_Candidate] = []
-    reports = [t for t in inputs.report_times if t <= as_of]
-    last_report = reports[-1] if reports else None
+    # The release that sets the re-confirmation cutoff is the latest one whose grace
+    # period has already run out. Using simply the latest release would let estimates
+    # that lapsed after the *previous* release come back during the new grace window.
+    lapsed = [t for t in inputs.report_times if t + REPORT_GRACE <= as_of]
+    cutoff_report = lapsed[-1] if lapsed else None
     period_end = inputs.period_end(period)
     spinoffs = [
         f
@@ -275,18 +278,14 @@ def compute_consensus(
                 _exclusion(c, "stale", f"entered {age} days before as_of (> {STALE_DAYS})")
             )
             continue
-        if (
-            last_report is not None
-            and c.entered_at < last_report
-            and as_of >= last_report + REPORT_GRACE
-        ):
+        if cutoff_report is not None and c.entered_at < cutoff_report:
             excluded.append(
                 _exclusion(
                     c,
                     "not_reconfirmed_after_report",
-                    f"entered {c.entered_at.date()}, before the earnings release of "
-                    f"{last_report.date()}, and not revised or re-confirmed within "
-                    f"{REPORT_GRACE.days} days after it",
+                    f"entered {c.entered_at:%Y-%m-%d}, before the earnings release of "
+                    f"{cutoff_report:%Y-%m-%d %H:%M} UTC, and not revised or re-confirmed "
+                    f"within {REPORT_GRACE.days} days after it",
                 )
             )
             continue

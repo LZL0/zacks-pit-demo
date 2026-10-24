@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from pitdemo.schemas import (
@@ -26,6 +27,7 @@ STATUS = {"NotFound": 404, "InsufficientEstimates": 422, "InvalidRequest": 400}
 ERRORS: dict[int | str, dict[str, object]] = {
     400: {"model": ErrorResponse},
     404: {"model": ErrorResponse},
+    422: {"model": ErrorResponse},
 }
 
 
@@ -61,6 +63,19 @@ def create_app(service: Service | None = None, db_path: Path | None = None) -> F
         s = request.app.state.service
         assert isinstance(s, Service)
         return s
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+        problems = "; ".join(
+            f"{'.'.join(str(p) for p in e.get('loc', ())[1:]) or 'request'}: {e.get('msg')}"
+            for e in exc.errors()
+        )
+        body = ErrorResponse(
+            error="InvalidRequest",
+            message=problems or "invalid request",
+            hint="See /docs for parameter types and allowed values.",
+        )
+        return JSONResponse(status_code=400, content=body.model_dump(mode="json"))
 
     @app.exception_handler(ServiceError)
     async def service_error(_: Request, exc: ServiceError) -> JSONResponse:

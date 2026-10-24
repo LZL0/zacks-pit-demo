@@ -143,3 +143,54 @@ def test_mcp_list_corporate_actions(service: Service) -> None:
     r = _mcp(service, "list_corporate_actions", {"ticker": "GE"})
     actions = CorporateActionList.model_validate(r.structured_content)
     assert [a.action_type for a in actions.actions] == ["REVERSE_SPLIT", "SPINOFF", "SPINOFF"]
+
+
+def test_http_validation_errors_are_typed(http: TestClient) -> None:
+    r = http.get(
+        "/consensus",
+        params={"ticker": "NVDA", "period": "FY2025", "as_of": "2024-05-31", "basis": "raw"},
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "InvalidRequest"
+    r = http.get("/consensus", params={"ticker": "NVDA"})
+    assert r.status_code == 400
+    assert "as_of" in r.json()["message"]
+
+
+def test_http_revisions_accepts_relative_and_untidy_labels(http: TestClient) -> None:
+    for period in ("FY1", " fy2025 "):
+        r = http.get(
+            "/revisions", params={"ticker": "NVDA", "period": period, "as_of": "2024-06-30"}
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["fiscal_period"] == "FY2025"
+    r = http.get("/revisions", params={"ticker": "NVDA", "period": "next", "as_of": "2024-06-30"})
+    assert r.status_code == 400
+
+
+def test_python_sdk_raises_its_own_error_for_untyped_bodies() -> None:
+    import sys
+
+    import httpx
+
+    from pitdemo.sdkgen import SDK
+
+    sys.path.insert(0, str(SDK / "python"))
+    from pitdemo_sdk import PitApiError, PitClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("ticker") == "HTML":
+            return httpx.Response(502, text="<html>Bad gateway</html>")
+        body = {"error": "NotFound", "message": "nope", "hint": None}
+        return httpx.Response(404, json=body)
+
+    client = PitClient("http://test", transport=httpx.MockTransport(handler))
+    with pytest.raises(PitApiError) as typed:
+        client.consensus("ZZZ", "FY2025", "2024-05-31")
+    assert typed.value.error is not None
+    assert typed.value.error.error.value == "NotFound"
+    with pytest.raises(PitApiError) as untyped:
+        client.consensus("HTML", "FY2025", "2024-05-31")
+    assert untyped.value.error is None
+    assert untyped.value.status == 502
+    assert "Bad gateway" in untyped.value.body

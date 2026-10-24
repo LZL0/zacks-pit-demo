@@ -19,13 +19,23 @@ import {
 export type Basis = "adjusted" | "unadjusted";
 type Params = Record<string, string | number | undefined>;
 
+/** `error` is the typed body when the server sent one; otherwise null and `body` has the raw text. */
 export class PitApiError extends Error {
   constructor(
     readonly status: number,
-    readonly error: ErrorResponse,
+    readonly error: ErrorResponse | null,
+    readonly body = "",
   ) {
-    super(`${status} ${error.error}: ${error.message}`);
+    super(error ? `${status} ${error.error}: ${error.message}` : `${status} ${body.slice(0, 200)}`);
     this.name = "PitApiError";
+  }
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
 }
 
@@ -39,9 +49,12 @@ export class PitClient {
     const url = new URL(path, this.baseUrl);
     for (const [k, v] of Object.entries(params)) if (v !== undefined) url.searchParams.set(k, String(v));
     const res = await this.fetchImpl(url);
-    const body: unknown = await res.json();
-    if (!res.ok) throw new PitApiError(res.status, ErrorResponseSchema.parse(body));
-    return schema.parse(body);
+    const text = await res.text();
+    if (!res.ok) {
+      const typed = ErrorResponseSchema.safeParse(parseJson(text));
+      throw new PitApiError(res.status, typed.success ? typed.data : null, text);
+    }
+    return schema.parse(parseJson(text));
   }
 
   /** Point-in-time consensus. `asOf` as YYYY-MM-DD means end of that day, UTC. */

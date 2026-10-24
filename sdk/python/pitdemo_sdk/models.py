@@ -56,7 +56,7 @@ class Contributor(BaseModel):
     basis_inferred: Annotated[
         bool,
         Field(
-            description="True when the basis was a fallback guess.",
+            description="True when the basis is a guess: a date fallback, or inferred from a prior estimate whose own basis was a guess.",
             title="Basis Inferred",
         ),
     ]

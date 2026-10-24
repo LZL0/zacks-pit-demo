@@ -309,6 +309,7 @@ def generate_security(
             last_value: float | None = None
             last_basis: dt.date | None = None
             shock_mult = 1.0
+            outlier_pending = spec.outlier_on is not None and p.broker_id == outlier_broker
             for e in entries:
                 if (
                     spec.drop_coverage_on is not None
@@ -334,17 +335,20 @@ def generate_security(
                     value = last_value / cumulative_factor(splits, last_basis, basis_date)
                 else:
                     value = value_latest * cumulative_factor(splits, basis_date, LATEST)
-                if (
-                    spec.outlier_on is not None
-                    and p.broker_id == outlier_broker
-                    and e.kind == "report"
-                    and abs((day - spec.outlier_on).days) <= 3
-                ):
-                    value *= 1.6
+                is_outlier = (
+                    outlier_pending
+                    and spec.outlier_on is not None
+                    and day >= spec.outlier_on
+                    and e.kind != "restate"
+                )
+                if is_outlier:
+                    value *= 1.6  # a fat-finger estimate; the broker's next one is normal
+                    outlier_pending = False
                 value = round(value, 2)
                 action = "estimate"
                 if (
                     e.kind == "report"
+                    and not is_outlier
                     and last_value is not None
                     and last_basis is not None
                     and cumulative_factor(splits, last_basis, basis_date) == 1.0

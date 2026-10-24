@@ -56,13 +56,12 @@ def test_special_cases_present() -> None:
     df = pl.read_parquet(ESTIMATES_PATH)
     stops = df.filter(pl.col("action") == "stop")
     assert set(stops["security_id"].unique()) == {"SEC-0001", "SEC-0005"}
-    window = df.filter(
-        (pl.col("security_id") == "SEC-0003")
-        & pl.col("entered_at").is_between(dt.datetime(2022, 10, 15), dt.datetime(2022, 11, 15))
-    )
-    med = window.group_by("fiscal_period").agg(pl.col("value").median().alias("m"))
-    joined = window.join(med, on="fiscal_period")
-    assert (joined["value"] / joined["m"]).max() > 1.4  # the outlier
+    # The TSLA outlier: one broker's fat-finger estimate, caught after basis conversion.
+    from pitdemo.pipeline import memory_store
+    from pitdemo.transforms.consensus import consensus
+
+    r = consensus(memory_store(), "SEC-0003", "FY2022", dt.date(2022, 12, 5))
+    assert [x.reason for x in r.excluded] == ["outlier"]
 
 
 def test_report_events_exclude_tesla_delivery_releases(raw: RawData) -> None:
@@ -70,8 +69,9 @@ def test_report_events_exclude_tesla_delivery_releases(raw: RawData) -> None:
     q3_2022 = tsla.filter(
         pl.col("reported_at").is_between(dt.datetime(2022, 10, 1), dt.datetime(2022, 10, 31))
     )
-    # Deliveries 8-K (2022-10-03, also item 2.02) is not an earnings release.
-    assert [t.date() for t in q3_2022["reported_at"]] == [dt.date(2022, 10, 20)]
+    # Deliveries 8-K (2022-10-03, also item 2.02) is not an earnings release. The release
+    # was after the close on 2022-10-19: SEC header 17:15:46 New York = 21:15:46 UTC.
+    assert q3_2022["reported_at"].to_list() == [dt.datetime(2022, 10, 19, 21, 15, 46)]
 
 
 def test_nyse_calendar() -> None:
@@ -117,3 +117,59 @@ def test_every_corporate_action_cites_a_primary_source(raw: RawData, ticker: str
     assert rows.height >= 1
     for url in rows["source_url"]:
         assert url.startswith(("https://www.sec.gov/", "https://www.fdic.gov/"))
+
+
+@pytest.mark.parametrize(
+    ("json_value", "header_new_york", "utc"),
+    [
+        # (submissions JSON, SEC filing header ACCEPTANCE-DATETIME, true UTC)
+        (
+            "2024-05-23T00:21:29.000Z",
+            "2024-05-22 16:21:29 EDT",
+            dt.datetime(2024, 5, 22, 20, 21, 29),
+        ),
+        (
+            "2024-02-22T02:22:09.000Z",
+            "2024-02-21 16:22:09 EST",
+            dt.datetime(2024, 2, 21, 21, 22, 9),
+        ),
+        (
+            "2024-03-01T02:54:09.000Z",
+            "2024-02-29 16:54:09 EST",
+            dt.datetime(2024, 2, 29, 21, 54, 9),
+        ),
+        (
+            "2022-10-20T01:15:46.000Z",
+            "2022-10-19 17:15:46 EDT",
+            dt.datetime(2022, 10, 19, 21, 15, 46),
+        ),
+    ],
+)
+def test_sec_acceptance_times_are_converted_to_true_utc(
+    json_value: str, header_new_york: str, utc: dt.datetime
+) -> None:
+    """SEC's submissions JSON says 'Z' but is shifted by the Eastern offset."""
+    from pitdemo.ingest.edgar import parse_acceptance
+
+    assert parse_acceptance(json_value) == utc
+
+
+def test_corporate_actions_known_on_their_announcement_day(raw: RawData) -> None:
+    """In New York time, every announcement lands on the day the notes say it happened."""
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+    expected = {
+        ("NVDA", dt.date(2024, 6, 10)): dt.date(2024, 5, 22),
+        ("NVDA", dt.date(2021, 7, 20)): dt.date(2021, 5, 21),
+        ("AAPL", dt.date(2020, 8, 31)): dt.date(2020, 7, 30),
+        ("TSLA", dt.date(2020, 8, 31)): dt.date(2020, 8, 11),
+        ("TSLA", dt.date(2022, 8, 25)): dt.date(2022, 8, 5),
+        ("GE", dt.date(2023, 1, 4)): dt.date(2022, 11, 30),
+        ("GE", dt.date(2024, 4, 2)): dt.date(2024, 2, 29),
+    }
+    for row in raw.actions.iter_rows(named=True):
+        key = (row["ticker"], row["ex_date"])
+        if key in expected:
+            local = row["known_at"].replace(tzinfo=dt.UTC).astimezone(ny).date()
+            assert local == expected[key], key
